@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="data:,">
+<title>Test réseau · Planeur de poche · AAVA</title>
+<style>
+:root{--ink:#111B30;--paper:#F7F5EF;--card:#fff;--muted:#5B6678;--line:#E3E0D6;--ok:#1F8A4C;--warn:#B77A0B;--bad:#B93A2C;--run:#6B7A90;--acc:#0E6F7A}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+main{max-width:760px;margin:0 auto;padding:16px 16px 48px}
+header{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin:8px 0 4px}
+h1{font-size:22px;line-height:1.25;margin:0}
+h2{font-size:17px;margin:0 0 8px}
+.sub{color:var(--muted);font-size:14px;margin:2px 0 14px}
+.seg{display:inline-flex;background:#E9E6DC;border-radius:999px;padding:3px;flex:none}
+.seg button{border:0;background:transparent;border-radius:999px;padding:6px 12px;font-weight:700;color:var(--muted);font-size:13px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:#fff}
+section{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin:12px 0}
+.note{font-size:13.5px;color:var(--muted);margin:8px 0 0}
+ul.rows{list-style:none;margin:0;padding:0}
+.rows li{display:grid;grid-template-columns:22px 1fr;gap:2px 10px;padding:9px 0;border-top:1px solid var(--line)}
+.rows li:first-child{border-top:0}
+.dot{width:14px;height:14px;border-radius:50%;margin-top:5px;background:var(--run)}
+.dot.ok{background:var(--ok)}.dot.warn{background:var(--warn)}.dot.bad{background:var(--bad)}
+.dot.run{background:transparent;border:2.5px solid var(--run);border-top-color:transparent;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.dot.run{animation:none;border-top-color:var(--run)}}
+.rows b{font-weight:700}
+.rows .d{grid-column:2;color:var(--muted);font-size:13.5px;overflow-wrap:anywhere}
+.btn{appearance:none;border:0;border-radius:12px;padding:12px 16px;font:inherit;font-weight:700;cursor:pointer;background:var(--ink);color:#fff}
+.btn.sec{background:#E9E6DC;color:var(--ink)}
+.btn:disabled{opacity:.5;cursor:default}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0 0}
+input[type=text]{font:inherit;font-size:20px;letter-spacing:.12em;text-transform:uppercase;padding:10px 12px;border-radius:12px;border:2px solid var(--line);width:11.5em;max-width:100%;background:#fff;color:var(--ink)}
+.code{font:700 34px/1.1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.1em;background:#F1EEE4;border-radius:12px;padding:12px 16px;display:inline-block}
+pre.log{background:#0F1729;color:#DCE4F2;font:12.5px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;border-radius:12px;padding:10px 12px;max-height:210px;overflow:auto;white-space:pre-wrap;margin:10px 0 0}
+.verdict{border-radius:12px;padding:12px 14px;margin:10px 0 0;font-weight:600;background:#EEF4EF;border:1px solid #CFE2D4}
+.verdict.warn{background:#FBF3E2;border-color:#EBD6A6}.verdict.bad{background:#FBEAE7;border-color:#EBC3BC}
+.verdict p{margin:4px 0 0;font-weight:400;font-size:14.5px}
+textarea{width:100%;min-height:210px;font:12.5px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;border:1px solid var(--line);border-radius:12px;padding:10px;background:#FBFAF6;color:var(--ink)}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <div>
+    <h1 id="tTitle"></h1>
+    <p class="sub" id="tSub"></p>
+  </div>
+  <div class="seg" role="group" aria-label="Langue"><button id="lgFR" aria-pressed="true">FR</button><button id="lgEN" aria-pressed="false">EN</button></div>
+</header>
+
+<section id="s1">
+  <h2 id="h1"></h2>
+  <ul class="rows" id="rows"></ul>
+  <div class="verdict" id="v1" hidden></div>
+  <div class="row"><button class="btn sec" id="btnRerun"></button></div>
+  <p class="note" id="n1"></p>
+</section>
+
+<section id="s2">
+  <h2 id="h2"></h2>
+  <p class="note" id="n2" style="margin-top:0"></p>
+  <div class="row">
+    <button class="btn" id="btnHost"></button>
+    <span id="or"></span>
+    <input type="text" id="code" maxlength="9" inputmode="text" autocapitalize="characters" autocomplete="off" autocorrect="off" spellcheck="false" aria-label="Code">
+    <button class="btn" id="btnJoin"></button>
+  </div>
+  <div id="hostBox" hidden>
+    <p class="note" id="hostHint"></p>
+    <div class="code" id="codeShow"></div>
+  </div>
+  <div class="verdict" id="v2" hidden></div>
+  <pre class="log" id="log" hidden></pre>
+</section>
+
+<section id="s3">
+  <h2 id="h3"></h2>
+  <textarea id="rep" readonly></textarea>
+  <div class="row"><button class="btn" id="btnCopy"></button><span class="note" id="copied"></span></div>
+  <p class="note" id="n3"></p>
+</section>
+</main>
+
+<script>
+"use strict";
+/* ================================================================================================
+   Test réseau — Planeur de poche (AAVA, Vinon-sur-Verdon)
+   One file, no library, no account, nothing stored. For a given place and set of devices it answers three questions:
+   1. Can this browser reach the free public relays two devices could use to find each other (signalling)?
+   2. Can it get an outside address through STUN (UDP), and how hard is the box (NAT) in front of it?
+   3. Can two devices open a direct link (WebRTC data channel), how fast, and is it local or through the internet?
+   Pairing messages are encrypted in the browser with a key derived from the code (AES-GCM): the relays only see noise.
+   The report it prints contains no address, name or identifier.
+   ================================================================================================ */
+
+// ---------- what is tested (an automated test harness may replace it before load; the address cannot) ----------
+const CFG = window.__VNT_TEST__ || {
+  ntfy: [{ name: "ntfy.sh", base: "https://ntfy.sh", port: 443 }],
+  mqtt: [
+    { name: "EMQX", url: "wss://broker.emqx.io:8084/mqtt", port: 8084 },
+    { name: "HiveMQ", url: "wss://broker.hivemq.com:8884/mqtt", port: 8884 },
+    { name: "Mosquitto", url: "wss://test.mosquitto.org:8081/", port: 8081 },
+    { name: "Eclipse", url: "wss://mqtt.eclipseprojects.io:443/mqtt", port: 443 }
+  ],
+  stun: [
+    { name: "Google", url: "stun:stun.l.google.com:19302" },
+    { name: "Cloudflare", url: "stun:stun.cloudflare.com:3478" },
+    { name: "Nextcloud (443)", url: "stun:stun.nextcloud.com:443" }
+  ]
+};
+const TIMEOUT_REL = 9000, TIMEOUT_PAIR = 30000;
+
+// ---------- texts ----------
+const TX = {
+  fr: {
+    title: "Test réseau · Planeur de poche", sub: "Association Aéronautique du Verdon · à faire sur place, avec les appareils qui serviront.",
+    h1: "1 · Ce navigateur et ce réseau", rerun: "Relancer les tests",
+    n1: "Cette page n’envoie aucune donnée personnelle. Elle contacte des services publics gratuits (ntfy.sh, des serveurs MQTT publics, des serveurs STUN de Google, Cloudflare et Nextcloud) : ils voient l’adresse IP de l’appareil, comme n’importe quel site.",
+    h2: "2 · Deux appareils", n2: "Sur un premier appareil, crée un code. Sur le deuxième, saisis-le : les deux appareils essaient de se parler directement. Idéal : un téléphone en 4G et un autre sur le Wi-Fi du lieu, puis les deux sur le même Wi-Fi.",
+    host: "Créer un code", or: "ou", join: "Connecter", hostHint: "Saisis ce code sur l’autre appareil (garde cette page ouverte) :",
+    h3: "3 · Rapport à copier", copy: "Copier le rapport", copied: "Copié.", n3: "Le rapport ne contient ni adresse IP ni nom : tu peux le coller dans un message pour la personne qui organise le test.",
+    r_env: "Navigateur", r_net: "Connexion annoncée", r_ntfy: "Relais ntfy.sh (port {p})", r_mqtt: "Relais MQTT {n} (port {p})", r_stun: "STUN {n}", r_nat: "Boîtier du réseau (NAT)", r_cand: "Adresses locales",
+    ok: "OK", blocked: "inaccessible", timeout: "pas de réponse", ms: "aller-retour {ms} ms",
+    env_ok: "Tout y est : HTTPS, WebRTC, chiffrement, WebSocket.", env_bad: "Il manque : {list}.", env_enc: "chiffrement (WebCrypto)",
+    net_none: "non communiquée par le navigateur",
+    stun_ok: "adresse publique obtenue en {ms} ms", stun_none: "aucune réponse (UDP bloqué, ou pas d’accès)",
+    nat_easy: "favorable : tous les serveurs voient la même adresse et le même port.", nat_hard: "difficile : le port change selon le serveur (NAT symétrique). Un lien direct à travers Internet risque d’échouer ; sur le même réseau local, il marche en général.",
+    nat_multi: "plusieurs adresses publiques : à interpréter avec prudence.", nat_unknown: "indéterminé (STUN inaccessible).", nat_one: "un seul serveur a répondu : indéterminé.",
+    cand_mdns: "masquées par le navigateur (mDNS, c’est normal)", cand_ip: "visibles (adresses IP locales)", cand_none: "aucune obtenue", cand_v6: " · IPv6 présent", cand_v4: " · IPv4 présent",
+    v1_good: "Les relais gratuits sont accessibles ({n}).", v1_good_d: "Deux appareils peuvent se découvrir avec un simple code, sans serveur à installer.",
+    v1_one: "Un seul relais accessible ({n}).", v1_one_d: "Ça marche, mais sans solution de secours. À refaire dans un autre lieu.",
+    v1_none: "Aucun relais accessible.", v1_none_d: "Le réseau bloque ces services (courant sur les Wi-Fi d’entreprise ou d’invités). Essaie le partage de connexion d’un téléphone.",
+    p_wait: "En attente de l’autre appareil…", p_open: "Relais ouverts : {names}.", p_hello: "L’autre appareil est là (via {via}).", p_offer: "Offre envoyée.", p_answer: "Réponse envoyée.",
+    p_conn: "Lien direct établi.", p_fail: "Pas de lien direct après {s} s.", p_bad: "Code non valide : 8 caractères (lettres et chiffres).", p_noch: "Aucun relais accessible : impossible de s’appairer d’ici.",
+    p_ice: "État du lien : {s}", p_test: "Mesure en cours…", p_done: "Mesure terminée.", p_nopeer: "L’autre appareil n’a pas répondu en {s} s (code erroné, ou page fermée ?).", p_cand: "Adresses essayées : {c}.",
+    p_res: "Résultat reçu de l’autre appareil.",
+    v2_local: "Lien direct établi, sur le réseau local.", v2_net: "Lien direct établi, à travers Internet.", v2_relay: "Lien établi par un relais.", v2_fail: "Pas de lien direct.",
+    v2_d: "Aller-retour médian {med} ms (min {min}, max {max}). Pertes sur canal non fiable : {loss} %.",
+    v2_fail_d: "Causes probables : le Wi-Fi isole les appareils entre eux (courant sur les réseaux invités), l’UDP est bloqué, ou l’un des deux est derrière un NAT symétrique. Essaie le partage de connexion d’un téléphone.",
+    rp_head: "Test réseau · Planeur de poche", rp_dev: "Appareil", rp_conn: "Connexion annoncée", rp_relays: "Relais", rp_stun: "STUN", rp_nat: "NAT", rp_cand: "Adresses locales", rp_pair: "Lien entre deux appareils", rp_none: "non testé",
+    role_host: "créateur du code", role_guest: "invité", link_local: "réseau local", link_net: "Internet (NAT)", link_relay: "relais",
+    rp_pairline: "{role} : lien direct {link}, médiane {med} ms (min {min}, max {max}), pertes {loss} %, {proto}{net}", rp_hostline: "{role} : lien direct {link}, {proto}{net}", rp_failline: "{role} : pas de lien direct"
+  },
+  en: {
+    title: "Network test · Pocket Glider", sub: "Association Aéronautique du Verdon · to run on site, with the devices that will be used.",
+    h1: "1 · This browser and this network", rerun: "Run the tests again",
+    n1: "This page sends no personal data. It contacts free public services (ntfy.sh, public MQTT servers, STUN servers run by Google, Cloudflare and Nextcloud): they see the device’s IP address, like any website.",
+    h2: "2 · Two devices", n2: "On a first device, create a code. On the second, type it in: the two devices try to talk to each other directly. Ideal: one phone on 4G and another on the venue’s Wi-Fi, then both on the same Wi-Fi.",
+    host: "Create a code", or: "or", join: "Connect", hostHint: "Type this code on the other device (keep this page open):",
+    h3: "3 · Report to copy", copy: "Copy the report", copied: "Copied.", n3: "The report contains no IP address and no name: you can paste it into a message to whoever is organising the test.",
+    r_env: "Browser", r_net: "Declared connection", r_ntfy: "ntfy.sh relay (port {p})", r_mqtt: "MQTT relay {n} (port {p})", r_stun: "STUN {n}", r_nat: "Network box (NAT)", r_cand: "Local addresses",
+    ok: "OK", blocked: "unreachable", timeout: "no answer", ms: "round trip {ms} ms",
+    env_ok: "Everything is there: HTTPS, WebRTC, encryption, WebSocket.", env_bad: "Missing: {list}.", env_enc: "encryption (WebCrypto)",
+    net_none: "not provided by the browser",
+    stun_ok: "public address obtained in {ms} ms", stun_none: "no answer (UDP blocked, or no access)",
+    nat_easy: "favourable: every server sees the same address and port.", nat_hard: "difficult: the port changes with the server (symmetric NAT). A direct link across the internet may fail; on the same local network it usually works.",
+    nat_multi: "several public addresses: interpret with care.", nat_unknown: "undetermined (STUN unreachable).", nat_one: "only one server answered: undetermined.",
+    cand_mdns: "hidden by the browser (mDNS, normal)", cand_ip: "visible (local IP addresses)", cand_none: "none obtained", cand_v6: " · IPv6 present", cand_v4: " · IPv4 present",
+    v1_good: "The free relays are reachable ({n}).", v1_good_d: "Two devices can find each other with a simple code, with no server to install.",
+    v1_one: "Only one relay is reachable ({n}).", v1_one_d: "It works, but with no fallback. Repeat at another venue.",
+    v1_none: "No relay is reachable.", v1_none_d: "The network blocks these services (common on company or guest Wi-Fi). Try a phone’s hotspot.",
+    p_wait: "Waiting for the other device…", p_open: "Relays open: {names}.", p_hello: "The other device is here (via {via}).", p_offer: "Offer sent.", p_answer: "Answer sent.",
+    p_conn: "Direct link established.", p_fail: "No direct link after {s} s.", p_bad: "Invalid code: 8 characters (letters and digits).", p_noch: "No relay reachable: cannot pair from here.",
+    p_ice: "Link state: {s}", p_test: "Measuring…", p_done: "Measurement finished.", p_nopeer: "The other device did not answer within {s} s (wrong code, or page closed?).", p_cand: "Address types tried: {c}.",
+    p_res: "Result received from the other device.",
+    v2_local: "Direct link established, on the local network.", v2_net: "Direct link established, across the internet.", v2_relay: "Link established through a relay.", v2_fail: "No direct link.",
+    v2_d: "Median round trip {med} ms (min {min}, max {max}). Loss on the unreliable channel: {loss} %.",
+    v2_fail_d: "Likely causes: the Wi-Fi isolates devices from each other (common on guest networks), UDP is blocked, or one of them is behind a symmetric NAT. Try a phone’s hotspot.",
+    rp_head: "Network test · Pocket Glider", rp_dev: "Device", rp_conn: "Declared connection", rp_relays: "Relays", rp_stun: "STUN", rp_nat: "NAT", rp_cand: "Local addresses", rp_pair: "Link between two devices", rp_none: "not tested",
+    role_host: "code creator", role_guest: "guest", link_local: "local network", link_net: "internet (NAT)", link_relay: "relay",
+    rp_pairline: "{role}: direct link {link}, median {med} ms (min {min}, max {max}), loss {loss} %, {proto}{net}", rp_hostline: "{role}: direct link {link}, {proto}{net}", rp_failline: "{role}: no direct link"
+  }
+};
+let lang = /^fr/i.test(navigator.language || "fr") ? "fr" : "en";
+const t = (k, p) => { let s = TX[lang][k] != null ? TX[lang][k] : k; if (p) for (const q in p) s = s.split("{" + q + "}").join(p[q]); return s; };
+const $ = id => document.getElementById(id);
+
+// ---------- helpers ----------
+const enc = new TextEncoder(), dec = new TextDecoder();
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const withTimeout = (p, ms, label) => new Promise((res, rej) => { const h = setTimeout(() => rej(new Error(label || "timeout")), ms); p.then(v => { clearTimeout(h); res(v); }, e => { clearTimeout(h); rej(e); }); });
+const rnd = (n = 8) => { const a = new Uint8Array(n); crypto.getRandomValues(a); return Array.from(a, b => b.toString(16).padStart(2, "0")).join(""); };
+const hex = u => Array.from(u, b => b.toString(16).padStart(2, "0")).join("");
+const b64 = u => { let s = ""; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(s); };
+const unb64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+const median = a => { const s = a.slice().sort((x, y) => x - y); return s.length ? s[Math.floor(s.length / 2)] : 0; };
+const now = () => performance.now();
+function logLine(s) { const el = $("log"); el.hidden = false; el.textContent += new Date().toTimeString().slice(0, 8) + "  " + s + "\n"; el.scrollTop = el.scrollHeight; }
+const errKind = e => (e && e.message === "timeout") || (e && e.message === "no echo") ? "timeout" : "blocked";
+
+// ================================================================================================
+// Results, kept as data and drawn by render() (so the language can change at any time)
+// ================================================================================================
+const RES = { env: null, conn: "", relays: [], stun: [], nat: null, cand: null, pair: {}, done: false };
+
+function uaShort() {
+  const u = navigator.userAgent || ""; let b = "?", m;
+  if ((m = /(Edg|EdgA|EdgiOS)\/(\d+)/.exec(u))) b = "Edge " + m[2];
+  else if ((m = /(OPR|Opera)\/(\d+)/.exec(u))) b = "Opera " + m[2];
+  else if ((m = /(CriOS|Chrome)\/(\d+)/.exec(u))) b = "Chrome " + m[2];
+  else if ((m = /(FxiOS|Firefox)\/(\d+)/.exec(u))) b = "Firefox " + m[2];
+  else if ((m = /Version\/(\d+)[\d.]*.*Safari/.exec(u))) b = "Safari " + m[1];
+  const os = /Android/.test(u) ? "Android" : /iPhone|iPad|iPod/.test(u) ? "iOS" : /Windows/.test(u) ? "Windows" : /Mac OS X|Macintosh/.test(u) ? "macOS" : /CrOS/.test(u) ? "ChromeOS" : /Linux/.test(u) ? "Linux" : "?";
+  return b + " / " + os;
+}
+function checkEnv() {
+  const miss = [];
+  if (!window.isSecureContext) miss.push("HTTPS");
+  if (!window.RTCPeerConnection) miss.push("WebRTC");
+  if (!(window.crypto && crypto.subtle)) miss.push("*enc");
+  if (!window.WebSocket) miss.push("WebSocket");
+  if (!window.EventSource) miss.push("EventSource");
+  RES.env = { miss, ua: uaShort() };
+  const c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+  RES.conn = c ? [c.type, c.effectiveType, c.rtt != null ? "rtt " + c.rtt + " ms" : "", c.downlink != null ? c.downlink + " Mb/s" : ""].filter(Boolean).join(" · ") : "";
+}
+
+// ================================================================================================
+// Signalling transports. Each: open(topic, onText) -> Promise<{ send(text), close() }>. All carry the same opaque text.
+// ================================================================================================
+const ntfyTransport = c => ({
+  name: c.name,
+  open(topic, onText) {
+    return new Promise((resolve, reject) => {
+      let es, done = false;
+      try { es = new EventSource(c.base + "/" + topic + "/sse"); } catch (e) { return reject(e); }
+      const h = setTimeout(() => { if (!done) { done = true; try { es.close(); } catch (_) { } reject(new Error("timeout")); } }, TIMEOUT_REL);
+      const api = {
+        send: text => fetch(c.base + "/" + topic + "?cache=no", { method: "POST", body: text, headers: { "Content-Type": "text/plain" } }).then(r => { if (!r.ok) throw new Error("HTTP " + r.status); }),
+        close() { try { es.close(); } catch (_) { } }
+      };
+      const msg = e => { try { const j = JSON.parse(e.data); if (j.event === "message" && typeof j.message === "string") onText(j.message); } catch (_) { } };
+      es.onmessage = msg;
+      es.addEventListener("open", () => { if (done) return; done = true; clearTimeout(h); resolve(api); });
+      es.onerror = () => { if (!done) { done = true; clearTimeout(h); try { es.close(); } catch (_) { } reject(new Error("blocked")); } };
+    });
+  }
+});
+
+// Minimal MQTT 3.1.1 client (QoS 0, clean session): enough to publish and subscribe on a public broker.
+const cat = (...a) => { let n = 0; a.forEach(x => n += x.length); const o = new Uint8Array(n); let p = 0; a.forEach(x => { o.set(x, p); p += x.length; }); return o; };
+const mStr = s => { const b = enc.encode(s), o = new Uint8Array(2 + b.length); o[0] = b.length >> 8; o[1] = b.length & 255; o.set(b, 2); return o; };
+const mLen = n => { const o = []; do { let d = n % 128; n = Math.floor(n / 128); if (n > 0) d |= 128; o.push(d); } while (n > 0); return new Uint8Array(o); };
+const mPkt = (type, body) => cat(new Uint8Array([type]), mLen(body.length), body);
+function mqttConnect(url, onPublish) {
+  return new Promise((resolve, reject) => {
+    let ws, buf = new Uint8Array(0), ping, state = "connecting", subId = 0, h; const waiters = {};
+    try { ws = new WebSocket(url, "mqtt"); } catch (e) { return reject(e); }
+    ws.binaryType = "arraybuffer";
+    const fail = e => { clearInterval(ping); if (state === "connecting") { state = "failed"; clearTimeout(h); try { ws.close(); } catch (_) { } reject(e); } };
+    h = setTimeout(() => fail(new Error("timeout")), TIMEOUT_REL);
+    ws.onerror = () => fail(new Error("blocked"));
+    ws.onclose = () => fail(new Error("blocked"));
+    ws.onopen = () => ws.send(mPkt(0x10, cat(mStr("MQTT"), new Uint8Array([4, 2, 0, 30]), mStr("vnt-" + rnd(6)))));
+    const api = {
+      send(topic, text) { ws.send(mPkt(0x30, cat(mStr(topic), enc.encode(text)))); return Promise.resolve(); },
+      sub(topic) { return new Promise((res, rej) => { const id = ++subId; waiters[id] = res; ws.send(mPkt(0x82, cat(new Uint8Array([id >> 8, id & 255]), mStr(topic), new Uint8Array([0])))); setTimeout(() => rej(new Error("timeout")), 6000); }); },
+      close() { clearInterval(ping); try { ws.close(); } catch (_) { } }
+    };
+    ws.onmessage = ev => {
+      buf = cat(buf, new Uint8Array(ev.data));
+      for (;;) {
+        if (buf.length < 2) return;
+        let len = 0, mul = 1, i = 1, b;
+        do { if (i >= buf.length) return; b = buf[i++]; len += (b & 127) * mul; mul *= 128; } while ((b & 128) && i < 5);
+        if (buf.length < i + len) return;
+        const first = buf[0], type = first >> 4, body = buf.slice(i, i + len); buf = buf.slice(i + len);
+        if (type === 2) {
+          if (body[1] === 0 && state === "connecting") { state = "open"; clearTimeout(h); ping = setInterval(() => { try { ws.send(new Uint8Array([0xC0, 0])); } catch (_) { } }, 20000); resolve(api); }
+          else fail(new Error("blocked"));
+        } else if (type === 9) { const id = (body[0] << 8) | body[1]; if (waiters[id]) { waiters[id](); delete waiters[id]; } }
+        else if (type === 3) { const qos = (first >> 1) & 3, tl = (body[0] << 8) | body[1], off = 2 + tl + (qos ? 2 : 0); try { onPublish(dec.decode(body.subarray(2, 2 + tl)), dec.decode(body.subarray(off))); } catch (_) { } }
+      }
+    };
+  });
+}
+const mqttTransport = c => ({
+  name: c.name,
+  async open(topic, onText) {
+    const full = "vnt/" + topic, m = await mqttConnect(c.url, (tp, pl) => { if (tp === full) onText(pl); });
+    try { await m.sub(full); } catch (e) { m.close(); throw e; }
+    return { send: text => m.send(full, text), close: () => m.close() };
+  }
+});
+const transports = () => [...CFG.ntfy.map(c => Object.assign(ntfyTransport(c), { kind: "ntfy", cfg: c })), ...CFG.mqtt.map(c => Object.assign(mqttTransport(c), { kind: "mqtt", cfg: c }))];
+
+// ================================================================================================
+// Tests of section 1
+// ================================================================================================
+async function relayEcho(tr) {                       // publish on a throwaway topic and wait for our own message to come back
+  const topic = "vnt-t-" + rnd(8), nonce = rnd(6); let got; const p = new Promise(r => got = r);
+  const h = await tr.open(topic, text => { if (text === nonce) got(); });
+  try { const t1 = now(); await h.send(nonce); await withTimeout(p, 7000, "no echo"); return Math.round(now() - t1); } finally { h.close(); }
+}
+function parseCand(line) { const m = /^(?:a=)?candidate:\S+ \d+ (\w+) \d+ (\S+) (\d+) typ (\w+)/.exec(line || ""); return m ? { proto: m[1].toLowerCase(), addr: m[2], port: +m[3], type: m[4] } : null; }
+function gather(iceServers, ms) {                    // one peer connection = one local socket per interface: each STUN server reports what it sees
+  return new Promise(async resolve => {
+    const out = { cands: [], first: null }; let pc;
+    try { pc = new RTCPeerConnection({ iceServers }); } catch (e) { return resolve(out); }
+    const t0 = now(), fin = () => { try { pc.close(); } catch (_) { } resolve(out); }, h = setTimeout(fin, ms);
+    pc.onicecandidate = e => { if (!e.candidate) { clearTimeout(h); fin(); return; } const c = parseCand(e.candidate.candidate); if (c) { out.cands.push(c); if (c.type === "srflx" && out.first == null) out.first = Math.round(now() - t0); } };
+    try { pc.createDataChannel("x"); await pc.setLocalDescription(await pc.createOffer()); } catch (e) { clearTimeout(h); fin(); }
+  });
+}
+async function runTests() {
+  RES.relays = []; RES.stun = []; RES.nat = null; RES.cand = null; RES.done = false; render();
+  checkEnv();
+  const trs = transports();
+  trs.forEach(tr => RES.relays.push({ kind: tr.kind, name: tr.cfg.name, port: tr.cfg.port, state: "run" }));
+  CFG.stun.forEach(s => RES.stun.push({ name: s.name, state: "run" }));
+  render();
+  const jobs = [];
+  trs.forEach((tr, i) => jobs.push(relayEcho(tr).then(ms => { Object.assign(RES.relays[i], { state: "ok", ms }); }, e => { Object.assign(RES.relays[i], { state: errKind(e) }); }).then(render)));
+  if (window.RTCPeerConnection) {
+    CFG.stun.forEach((s, i) => jobs.push(gather([{ urls: s.url }], 6000).then(o => {
+      const sr = o.cands.filter(c => c.type === "srflx"); Object.assign(RES.stun[i], sr.length ? { state: "ok", ms: o.first } : { state: "blocked" });
+      if (i === 0) RES.cand = candSummary(o.cands);
+    }).then(render)));
+    jobs.push(gather(CFG.stun.map(s => ({ urls: s.url })), 7000).then(o => {
+      const sr = o.cands.filter(c => c.type === "srflx" && c.proto === "udp"), ips = new Set(sr.map(c => c.addr)), ports = new Set(sr.map(c => c.port));
+      RES.nat = !sr.length ? "unknown" : (RES.stun.filter(s => s.state === "ok").length < 2 ? "one" : ips.size > 1 ? "multi" : ports.size > 1 ? "hard" : "easy");
+      if (!RES.cand || !RES.cand.n) RES.cand = candSummary(o.cands);
+    }).then(render));
+  } else { RES.nat = "unknown"; RES.stun.forEach(s => s.state = "blocked"); }
+  await Promise.allSettled(jobs);
+  RES.done = true; render();
+}
+function candSummary(cs) {
+  const hosts = cs.filter(c => c.type === "host");
+  return { n: hosts.length, mdns: hosts.some(c => /\.local$/i.test(c.addr)), v6: hosts.some(c => c.addr.includes(":")), v4: hosts.some(c => /^\d+\.\d+\.\d+\.\d+$/.test(c.addr) || /\.local$/i.test(c.addr)) };
+}
+
+// ================================================================================================
+// Drawing
+// ================================================================================================
+function addRow(label, state, detail) {
+  const li = document.createElement("li"); li.innerHTML = '<span class="dot"></span><b></b><span class="d"></span>';
+  li.querySelector(".dot").className = "dot " + state; li.querySelector("b").textContent = label; li.querySelector(".d").textContent = detail || ""; $("rows").appendChild(li);
+}
+const relayDetail = r => r.state === "ok" ? t("ms", { ms: r.ms }) : r.state === "run" ? "" : t(r.state);
+function relaysOk() { return RES.relays.filter(r => r.state === "ok"); }
+function render() {
+  document.documentElement.lang = lang;
+  ["title", "sub", "h1", "h2", "h3", "n1", "n2", "n3"].forEach(k => { const el = $({ title: "tTitle", sub: "tSub" }[k] || k); if (el) el.textContent = t(k); });
+  $("btnRerun").textContent = t("rerun"); $("btnHost").textContent = t("host"); $("or").textContent = t("or"); $("btnJoin").textContent = t("join"); $("hostHint").textContent = t("hostHint");
+  $("btnCopy").textContent = t("copy"); $("lgFR").setAttribute("aria-pressed", lang === "fr"); $("lgEN").setAttribute("aria-pressed", lang === "en"); $("code").placeholder = "XXXX-XXXX";
+  const rows = $("rows"); rows.innerHTML = "";
+  const e = RES.env;
+  if (e) {
+    const list = e.miss.map(m => m === "*enc" ? t("env_enc") : m).join(", ");
+    addRow(t("r_env") + " · " + e.ua, e.miss.length ? "bad" : "ok", e.miss.length ? t("env_bad", { list }) : t("env_ok"));
+    addRow(t("r_net"), RES.conn ? "ok" : "warn", RES.conn || t("net_none"));
+  }
+  RES.relays.forEach(r => addRow(r.kind === "ntfy" ? t("r_ntfy", { p: r.port }) : t("r_mqtt", { n: r.name, p: r.port }), r.state === "ok" ? "ok" : r.state === "run" ? "run" : "bad", relayDetail(r)));
+  RES.stun.forEach(s => addRow(t("r_stun", { n: s.name }), s.state === "ok" ? "ok" : s.state === "run" ? "run" : "bad", s.state === "ok" ? t("stun_ok", { ms: s.ms }) : s.state === "run" ? "" : t("stun_none")));
+  if (RES.stun.length) addRow(t("r_nat"), RES.nat ? (RES.nat === "easy" ? "ok" : RES.nat === "hard" || RES.nat === "multi" ? "warn" : "warn") : "run", RES.nat ? t("nat_" + RES.nat) : "");
+  if (RES.stun.length) { const c = RES.cand; addRow(t("r_cand"), c ? (c.n ? "ok" : "warn") : "run", c ? (c.n ? (c.mdns ? t("cand_mdns") : t("cand_ip")) + (c.v4 ? t("cand_v4") : "") + (c.v6 ? t("cand_v6") : "") : t("cand_none")) : ""); }
+  const v1 = $("v1");
+  if (RES.done) {
+    const ok = relaysOk(), names = ok.map(r => r.name).join(", "), k = ok.length >= 2 ? "good" : ok.length === 1 ? "one" : "none";
+    v1.hidden = false; v1.className = "verdict" + (k === "good" ? "" : k === "one" ? " warn" : " bad");
+    v1.innerHTML = ""; const b = document.createElement("div"); b.textContent = t("v1_" + k, { n: names }); const p = document.createElement("p"); p.textContent = t("v1_" + k + "_d"); v1.appendChild(b); v1.appendChild(p);
+  } else v1.hidden = true;
+  $("rep").value = buildReport();
+}
+
+// ================================================================================================
+// Pairing (section 2): encrypted signalling on every reachable relay at once, then a WebRTC data channel
+// ================================================================================================
+const ALPH = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";               // 32 symbols, no 0 O 1 I
+const newCode = () => Array.from(crypto.getRandomValues(new Uint8Array(8)), b => ALPH[b % 32]).join("");
+const fmtCode = c => c.slice(0, 4) + "-" + c.slice(4);
+const normCode = s => String(s || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+const validCode = c => c.length === 8 && [...c].every(ch => ALPH.includes(ch));
+async function keyFor(code) { const base = await crypto.subtle.importKey("raw", enc.encode(code), "PBKDF2", false, ["deriveKey"]); return crypto.subtle.deriveKey({ name: "PBKDF2", salt: enc.encode("aava-vnt-1"), iterations: 100000, hash: "SHA-256" }, base, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]); }
+async function topicFor(code) { return "vnt-" + hex(new Uint8Array(await crypto.subtle.digest("SHA-256", enc.encode("topic:" + code))).slice(0, 12)); }
+async function seal(key, obj) { const iv = crypto.getRandomValues(new Uint8Array(12)); return b64(cat(iv, new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, enc.encode(JSON.stringify(obj)))))); }
+async function unseal(key, text) { const u = unb64(text); return JSON.parse(dec.decode(await crypto.subtle.decrypt({ name: "AES-GCM", iv: u.slice(0, 12) }, key, u.slice(12)))); }
+
+class Chan {
+  constructor(code, role) { this.code = code; this.role = role; this.seen = new Set(); this.live = []; this.onmsg = () => { }; this.via = {}; }
+  async open() {
+    this.key = await keyFor(this.code); this.topic = await topicFor(this.code);
+    await Promise.all(transports().map(async tr => { try { const h = await tr.open(this.topic, txt => this._in(txt, tr.cfg.name)); this.live.push({ name: tr.cfg.name, h }); } catch (_) { } }));
+    return this.live.map(l => l.name);
+  }
+  async post(obj) { obj.n = rnd(6); obj.f = this.role; const txt = await seal(this.key, obj); await Promise.allSettled(this.live.map(l => l.h.send(txt))); }
+  async _in(txt, via) {
+    let m; try { m = await unseal(this.key, txt); } catch (_) { return; }
+    if (m.f === this.role || this.seen.has(m.n)) return; this.seen.add(m.n); m.via = via;
+    try { this.onmsg(m); } catch (e) { logLine("! " + e.message); }
+  }
+  close() { this.live.forEach(l => { try { l.h.close(); } catch (_) { } }); this.live = []; }
+}
+
+let CUR = null;                                                  // the pairing in progress
+function stopPairing() { if (!CUR) return; try { CUR.chan && CUR.chan.close(); } catch (_) { } try { CUR.pc && CUR.pc.close(); } catch (_) { } clearTimeout(CUR.timer); CUR.dead = true; CUR = null; }
+function verdict2(kind, title, detail) {
+  const v = $("v2"); v.hidden = !title; v.className = "verdict" + (kind === "ok" ? "" : kind === "warn" ? " warn" : " bad"); v.innerHTML = "";
+  if (!title) return; const b = document.createElement("div"); b.textContent = title; v.appendChild(b); if (detail) { const p = document.createElement("p"); p.textContent = detail; v.appendChild(p); }
+}
+async function pairInfo(pc) {
+  const st = await pc.getStats(), byId = {}; let pair = null;
+  st.forEach(r => { byId[r.id] = r; });
+  st.forEach(r => { if (r.type === "transport" && r.selectedCandidatePairId && byId[r.selectedCandidatePairId]) pair = byId[r.selectedCandidatePairId]; });
+  if (!pair) st.forEach(r => { if (r.type === "candidate-pair" && (r.selected || (r.nominated && r.state === "succeeded"))) pair = r; });
+  if (!pair) return null;
+  const l = byId[pair.localCandidateId] || {}, rm = byId[pair.remoteCandidateId] || {};
+  const link = l.candidateType === "relay" || rm.candidateType === "relay" ? "relay" : (l.candidateType === "host" && rm.candidateType === "host") ? "local" : "net";
+  return { link, lt: l.candidateType || "?", rt: rm.candidateType || "?", proto: (l.protocol || "udp").toUpperCase(), net: l.networkType || "" };
+}
+async function startPairing(role, code) {
+  stopPairing(); verdict2(null); $("log").textContent = ""; $("log").hidden = false;
+  const C = CUR = { role, code, pc: null, pend: [], remoteSet: false, started: false, connected: false, dead: false, types: new Set(), mine: null };
+  const alive = () => CUR === C && !C.dead;
+  $("btnHost").disabled = $("btnJoin").disabled = true;
+  const finish = () => { $("btnHost").disabled = $("btnJoin").disabled = false; };
+  const chan = C.chan = new Chan(code, role === "host" ? "A" : "B");
+  logLine(t("p_wait"));
+  const names = await chan.open();
+  if (!alive()) return;
+  if (!names.length) { verdict2("bad", t("v2_fail"), t("p_noch")); finish(); return; }
+  logLine(t("p_open", { names: names.join(", ") }));
+  const ice = () => ({ iceServers: CFG.stun.map(s => ({ urls: s.url })) });
+  const mkPc = () => {
+    const pc = new RTCPeerConnection(ice()); C.pc = pc;
+    pc.onicecandidate = e => { if (e.candidate && alive()) { const c = parseCand(e.candidate.candidate); if (c) C.types.add(c.type); chan.post({ t: "cand", c: e.candidate.toJSON() }); } };
+    pc.oniceconnectionstatechange = () => { if (alive()) logLine(t("p_ice", { s: pc.iceConnectionState })); };
+    return pc;
+  };
+  const addCand = async c => { try { await C.pc.addIceCandidate(c); } catch (_) { } };
+  const flush = async () => { C.remoteSet = true; for (const c of C.pend.splice(0)) await addCand(c); };
+  // each channel echoes pings; the guest measures
+  const wire = (dc, kind) => {
+    dc.onopen = () => { if (!alive() || kind !== "r") return; if (!C.connected) { C.connected = true; clearTimeout(C.timer); logLine(t("p_conn")); onConnected(); } };
+    dc.onmessage = ev => { let m; try { m = JSON.parse(ev.data); } catch (_) { return; } onData(dc, kind, m); };
+    if (kind === "r") C.dcR = dc; else C.dcU = dc;
+  };
+  const got = { r: new Map(), u: new Set() };
+  function onData(dc, kind, m) {
+    if (m.k === "p") { try { dc.send(JSON.stringify({ k: "e", i: m.i, t: m.t })); } catch (_) { } }
+    else if (m.k === "e") { if (kind === "r") got.r.set(m.i, now() - m.t); else got.u.add(m.i); }
+    else if (m.k === "res") { RES.pair.guest = m.r; logLine(t("p_res")); showPairResult(); render(); }
+  }
+  async function onConnected() {
+    C.info = await pairInfo(C.pc).catch(() => null);
+    if (role === "guest") {
+      logLine(t("p_test")); const N = 30;
+      for (let i = 0; i < N && alive(); i++) { try { C.dcR.send(JSON.stringify({ k: "p", i, t: now() })); } catch (_) { } await sleep(120); }
+      await sleep(700);
+      for (let i = 0; i < N && alive(); i++) { try { C.dcU.send(JSON.stringify({ k: "p", i, t: now() })); } catch (_) { } await sleep(60); }
+      await sleep(900); if (!alive()) return;
+      const rt = [...got.r.values()].map(x => Math.round(x));
+      C.mine = { ok: true, link: C.info ? C.info.link : "net", proto: C.info ? C.info.proto : "", net: C.info ? C.info.net : "", med: Math.round(median(rt)), min: rt.length ? Math.min(...rt) : 0, max: rt.length ? Math.max(...rt) : 0, loss: Math.round(100 * (N - got.u.size) / N), n: rt.length };
+      RES.pair.guest = C.mine; logLine(t("p_done"));
+      try { C.dcR.send(JSON.stringify({ k: "res", r: C.mine })); } catch (_) { }
+      showPairResult(); render(); finish();
+    } else {
+      RES.pair.host = { ok: true, link: C.info ? C.info.link : "net", proto: C.info ? C.info.proto : "", net: C.info ? C.info.net : "" };
+      showPairResult(); render(); setTimeout(() => { if (alive()) finish(); }, 8000);
+    }
+  }
+  function showPairResult() {
+    const r = RES.pair.guest || (RES.pair.host && RES.pair.host.med != null ? RES.pair.host : null);
+    if (!r) return; const kind = r.link === "local" ? "v2_local" : r.link === "relay" ? "v2_relay" : "v2_net";
+    verdict2("ok", t(kind), t("v2_d", { med: r.med, min: r.min, max: r.max, loss: r.loss }));
+  }
+  chan.onmsg = async m => {
+    if (!alive()) return;
+    if (role === "host") {
+      if (m.t === "hello") {
+        if (!C.started) {
+          C.started = true; logLine(t("p_hello", { via: m.via }));
+          const pc = mkPc(); wire(pc.createDataChannel("r"), "r"); wire(pc.createDataChannel("u", { ordered: false, maxRetransmits: 0 }), "u");
+          await pc.setLocalDescription(await pc.createOffer()); C.offer = pc.localDescription.sdp; await chan.post({ t: "offer", sdp: C.offer }); logLine(t("p_offer"));
+        } else if (!C.connected && C.offer) await chan.post({ t: "offer", sdp: C.offer });      // the guest still asks: say it again
+      } else if (m.t === "answer" && C.pc && !C.remoteSet) { await C.pc.setRemoteDescription({ type: "answer", sdp: m.sdp }); await flush(); }
+      else if (m.t === "cand") { if (C.remoteSet) await addCand(m.c); else C.pend.push(m.c); }
+    } else {
+      if (m.t === "offer" && !C.pc) {
+        logLine(t("p_hello", { via: m.via })); clearInterval(C.hello);
+        const pc = mkPc(); pc.ondatachannel = e => wire(e.channel, e.channel.label === "u" ? "u" : "r");
+        await pc.setRemoteDescription({ type: "offer", sdp: m.sdp }); await flush();
+        await pc.setLocalDescription(await pc.createAnswer()); await chan.post({ t: "answer", sdp: pc.localDescription.sdp }); logLine(t("p_answer"));
+      } else if (m.t === "cand") { if (C.remoteSet) await addCand(m.c); else C.pend.push(m.c); }
+    }
+  };
+  const fail = () => {
+    if (!alive() || C.connected) return;
+    const heard = role === "host" ? C.started : !!C.pc;
+    if (!heard) { logLine(t("p_nopeer", { s: TIMEOUT_PAIR / 1000 })); verdict2("bad", t("v2_fail"), t("p_nopeer", { s: TIMEOUT_PAIR / 1000 })); }
+    else { logLine(t("p_fail", { s: TIMEOUT_PAIR / 1000 })); logLine(t("p_cand", { c: [...C.types].join(", ") || "—" })); RES.pair[role === "host" ? "host" : "guest"] = { ok: false }; verdict2("bad", t("v2_fail"), t("v2_fail_d")); render(); }
+    stopPairing(); finish();
+  };
+  C.timer = setTimeout(fail, TIMEOUT_PAIR);
+  if (role === "guest") { const hello = () => chan.post({ t: "hello" }); await hello(); C.hello = setInterval(() => { if (alive() && !C.pc) hello(); }, 1500); }
+}
+
+// ================================================================================================
+// Report (no address, no name)
+// ================================================================================================
+function buildReport() {
+  const L = [], d = new Date(), z = n => String(n).padStart(2, "0");
+  L.push(t("rp_head") + " · " + z(d.getDate()) + "/" + z(d.getMonth() + 1) + "/" + d.getFullYear() + " " + z(d.getHours()) + ":" + z(d.getMinutes()));
+  if (RES.env) L.push(t("rp_dev") + " : " + RES.env.ua + (RES.env.miss.length ? " · " + t("env_bad", { list: RES.env.miss.map(m => m === "*enc" ? t("env_enc") : m).join(", ") }) : ""));
+  L.push(t("rp_conn") + " : " + (RES.conn || t("net_none")));
+  const rs = RES.relays.map(r => r.name + (r.kind === "ntfy" ? " (" + r.port + ")" : " (" + r.port + ")") + " " + (r.state === "ok" ? "OK " + r.ms + " ms" : r.state === "run" ? "…" : t(r.state)));
+  L.push(t("rp_relays") + " : " + (rs.join(" · ") || t("rp_none")));
+  const ss = RES.stun.map(s => s.name + " " + (s.state === "ok" ? "OK " + s.ms + " ms" : s.state === "run" ? "…" : t("stun_none").split(" (")[0]));
+  L.push(t("rp_stun") + " : " + (ss.join(" · ") || t("rp_none")));
+  L.push(t("rp_nat") + " : " + (RES.nat ? t("nat_" + RES.nat) : "…"));
+  const c = RES.cand; L.push(t("rp_cand") + " : " + (c ? (c.n ? (c.mdns ? t("cand_mdns") : t("cand_ip")) + (c.v4 ? t("cand_v4") : "") + (c.v6 ? t("cand_v6") : "") : t("cand_none")) : "…"));
+  const P = [["host", "role_host"], ["guest", "role_guest"]].map(([k, rk]) => {
+    const r = RES.pair[k]; if (!r) return null;
+    if (!r.ok) return t("rp_failline", { role: t(rk) });
+    if (r.med == null) return t("rp_hostline", { role: t(rk), link: t("link_" + r.link), proto: r.proto, net: r.net ? " · " + r.net : "" });
+    return t("rp_pairline", { role: t(rk), link: t("link_" + r.link), med: r.med, min: r.min, max: r.max, loss: r.loss, proto: r.proto, net: r.net ? " · " + r.net : "" });
+  }).filter(Boolean);
+  L.push(t("rp_pair") + " : " + (P.length ? "" : t("rp_none"))); P.forEach(x => L.push("  " + x));
+  return L.join("\n");
+}
+
+// ================================================================================================
+// Wiring
+// ================================================================================================
+function setLang(l) { lang = l; render(); }
+document.addEventListener("DOMContentLoaded", () => {
+  $("lgFR").onclick = () => setLang("fr"); $("lgEN").onclick = () => setLang("en");
+  $("btnRerun").onclick = () => runTests();
+  $("btnHost").onclick = async () => { const code = newCode(); $("hostBox").hidden = false; $("codeShow").textContent = fmtCode(code); await startPairing("host", code); };
+  $("btnJoin").onclick = async () => { const code = normCode($("code").value); if (!validCode(code)) { verdict2("bad", t("p_bad")); return; } $("hostBox").hidden = true; await startPairing("guest", code); };
+  $("code").addEventListener("input", e => { const v = normCode(e.target.value).slice(0, 8); e.target.value = v.length > 4 ? v.slice(0, 4) + "-" + v.slice(4) : v; });
+  $("code").addEventListener("keydown", e => { if (e.key === "Enter") $("btnJoin").click(); });
+  $("btnCopy").onclick = async () => { const ta = $("rep"); ta.value = buildReport(); try { await navigator.clipboard.writeText(ta.value); } catch (_) { ta.select(); try { document.execCommand("copy"); } catch (__) { } } $("copied").textContent = t("copied"); setTimeout(() => $("copied").textContent = "", 2500); };
+  render(); runTests();
+});
+window.__vnt = { RES, render, buildReport, startPairing, stopPairing, runTests };
+</script>
+</body>
+</html>
