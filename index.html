@@ -121,7 +121,7 @@ const CFG = window.__VNT_TEST__ || {
     { name: "Nextcloud (443)", url: "stun:stun.nextcloud.com:443" }
   ]
 };
-const VER = "1.2", TIMEOUT_REL = 9000, TIMEOUT_PAIR = 30000;
+const VER = "1.3", TIMEOUT_REL = 9000, TIMEOUT_PAIR = 30000;
 
 // ---------- texts ----------
 const TX = {
@@ -444,7 +444,18 @@ async function pairInfo(pc) {
   if (!pair) st.forEach(r => { if (r.type === "candidate-pair" && (r.selected || (r.nominated && r.state === "succeeded"))) pair = r; });
   if (!pair) return null;
   const l = byId[pair.localCandidateId] || {}, rm = byId[pair.remoteCandidateId] || {}, la = l.address || l.ip || "", ra = rm.address || rm.ip || "";
-  return { lt: l.candidateType || "", rt: rm.candidateType || "", proto: (l.protocol || rm.protocol || "").toUpperCase(), net: l.networkType || "", priv: privAddr(la) || privAddr(ra), same64: same64(la, ra) };
+  return { lt: l.candidateType || "", rt: rm.candidateType || "", proto: (l.protocol || rm.protocol || "").toUpperCase(), net: l.networkType || "", priv: privAddr(la) || privAddr(ra), same64: same64(la, ra), ra4: /^\d+\.\d+\.\d+\.\d+$/.test(ra) && !privAddr(ra) ? ra : "" };
+}
+// Do the two devices show the same public IPv4 address? true, false, or null when it cannot be known. Three sources, any of which may be missing:
+// the public addresses the other device announced while pairing (rem4), a fingerprint of those it found by itself (remHash, salted with the code),
+// and the address this device actually talks to (ra4). "mine" is what this device found for itself, just now.
+const pubHash = async (code, ip) => hex(new Uint8Array(await crypto.subtle.digest("SHA-256", enc.encode("pub:" + code + ":" + ip))).slice(0, 8));
+async function samePublic(mine, rem4, remHash, ra4, code) {
+  if (!mine.length) return null; let known = false, same = false;
+  if (rem4.size) { known = true; if (mine.some(a => rem4.has(a))) same = true; }
+  if (remHash.size) { known = true; for (const a of mine) if (remHash.has(await pubHash(code, a))) same = true; }
+  if (ra4) { known = true; if (mine.includes(ra4)) same = true; }
+  return same ? true : known ? false : null;
 }
 // Same network, or across the internet? Decided from evidence only, and "unknown" when there is none (v1.1 said "internet" by default).
 //   info: the pair of addresses in use (their types, whether one is private, whether both sit in the same IPv6 network);
@@ -466,11 +477,16 @@ function cleanResult(r) {
 }
 async function startPairing(role, code) {
   stopPairing(); verdict2(null); $("log").textContent = ""; $("log").hidden = false; RES.pair = {};
-  const C = CUR = { role, code, pc: null, pend: [], remoteSet: false, started: false, connected: false, dead: false, types: new Set(), mine: null, loc4: new Set(), rem4: new Set(), remHost: { mdns: 0, priv: 0, pub4: 0, pub6: 0 }, peerNet: "" };
+  const C = CUR = { role, code, pc: null, pend: [], remoteSet: false, started: false, connected: false, dead: false, types: new Set(), mine: null, loc4: new Set(), rem4: new Set(), remHost: { mdns: 0, priv: 0, pub4: 0, pub6: 0 }, peerNet: "", pub4: new Set(), remHash: new Set() };
   const alive = () => CUR === C && !C.dead;
   $("btnHost").disabled = $("btnJoin").disabled = true;
   const finish = () => { $("btnHost").disabled = $("btnJoin").disabled = false; };
   const chan = C.chan = new Chan(code, role === "host" ? "A" : "B");
+  // This device's public IPv4 address(es), asked afresh for each pairing: the network may have changed since the page was opened (Wi-Fi switched off for the 4G round).
+  if (window.RTCPeerConnection && CFG.stun.length) gather(CFG.stun.map(s => ({ urls: s.url })), 4000).then(o => { o.cands.forEach(c => { if (c.type === "srflx" && !c.addr.includes(":")) C.pub4.add(c.addr); }); }, () => { });
+  const mine = () => [...new Set([...C.pub4, ...C.loc4])];
+  const noteHash = list => { if (Array.isArray(list)) list.slice(0, 8).forEach(h => { if (typeof h === "string" && /^[0-9a-f]{16}$/.test(h)) C.remHash.add(h); }); };
+  const myHashes = async () => { try { return await Promise.all(mine().slice(0, 6).map(a => pubHash(code, a))); } catch (_) { return []; } };
   logLine(t("p_wait"));
   const names = await chan.open(n => { if (alive()) logLine(t("p_late", { n })); });
   if (!alive()) return;
@@ -488,14 +504,13 @@ async function startPairing(role, code) {
   const noteSdp = sdp => String(sdp || "").split(/\r?\n/).forEach(l => { if (l.indexOf("a=candidate:") === 0) noteRemote(l); });
   const addCand = async c => { try { noteRemote(c && c.candidate); await C.pc.addIceCandidate(c); } catch (_) { } };
   const flush = async () => { C.remoteSet = true; for (const c of C.pend.splice(0)) await addCand(c); };
-  const samePub = () => C.loc4.size && C.rem4.size ? [...C.loc4].some(a => C.rem4.has(a)) : null;
-  const evidence = async () => { const info = await pairInfo(C.pc).catch(() => null), sp = samePub(); return { link: linkKind(info, sp, C.remHost), proto: info ? info.proto : "", net: info ? info.net : "", lt: info ? info.lt : "", rt: info ? info.rt : "", sp, un: RES.userNet, pn: C.peerNet }; };
+  const evidence = async () => { const info = await pairInfo(C.pc).catch(() => null), sp = await samePublic(mine(), C.rem4, C.remHash, info ? info.ra4 : "", code).catch(() => null); return { link: linkKind(info, sp, C.remHost), proto: info ? info.proto : "", net: info ? info.net : "", lt: info ? info.lt : "", rt: info ? info.rt : "", sp, un: RES.userNet, pn: C.peerNet }; };
   // each channel echoes pings; the guest measures
   // The side that creates the channels speaks first. The side that answers waits to hear from it before sending anything:
   // what the answering side sends in the very first instant can be lost (seen about once in ten pairings in testing).
-  const sayHi = dc => { try { dc.send(JSON.stringify({ k: "hi", net: RES.userNet })); } catch (_) { } };
+  const sayHi = async dc => { const pub = await myHashes(); try { dc.send(JSON.stringify({ k: "hi", net: RES.userNet, pub })); } catch (_) { } };
   const wire = (dc, kind) => {
-    dc.onopen = () => { if (!alive() || kind !== "r") return; if (role === "host") { sayHi(dc); setTimeout(() => { if (alive()) sayHi(dc); }, 700); } if (!C.connected) { C.connected = true; clearTimeout(C.timer); logLine(t("p_conn")); onConnected(); } };
+    dc.onopen = () => { if (!alive() || kind !== "r") return; if (role === "host") { sayHi(dc); [700, 2500].forEach(ms => setTimeout(() => { if (alive()) sayHi(dc); }, ms)); } if (!C.connected) { C.connected = true; clearTimeout(C.timer); logLine(t("p_conn")); onConnected(); } };
     dc.onmessage = ev => { let m; try { m = JSON.parse(ev.data); } catch (_) { return; } onData(dc, kind, m); };
     if (kind === "r") C.dcR = dc; else C.dcU = dc;
   };
@@ -503,9 +518,9 @@ async function startPairing(role, code) {
   function onData(dc, kind, m) {
     if (m.k === "p") { try { dc.send(JSON.stringify({ k: "e", i: m.i, t: m.t })); } catch (_) { } }
     else if (m.k === "e") { if (kind === "r") got.r.set(m.i, now() - m.t); else got.u.add(m.i); }
-    else if (m.k === "hi") { C.peerNet = NETS.includes(m.net) ? m.net : ""; C.gotHi = true; if (role === "guest" && !C.hiSent) { C.hiSent = true; sayHi(dc); } }
+    else if (m.k === "hi") { C.peerNet = NETS.includes(m.net) ? m.net : ""; noteHash(m.pub); C.gotHi = true; if (role === "guest" && !C.hiSent) { C.hiSent = true; sayHi(dc); } }
     else if (m.k === "res") {
-      RES.pair.guest = cleanResult(m.r); if (!C.peerNet) C.peerNet = RES.pair.guest.un; logLine(t("p_res")); showPairResult(); render();
+      RES.pair.guest = cleanResult(m.r); noteHash(m.pub); if (!C.peerNet) C.peerNet = RES.pair.guest.un; logLine(t("p_res")); showPairResult(); render();
       evidence().then(ev => { if (!alive()) return; RES.pair.host = Object.assign({ ok: true }, ev); showPairResult(); render(); });   // by now every address has arrived: look again
     }
   }
@@ -521,7 +536,7 @@ async function startPairing(role, code) {
       const rt = [...got.r.values()].map(x => Math.round(x)), ev = await evidence(); if (!alive()) return;
       C.mine = Object.assign({ ok: true, med: Math.round(median(rt)), min: rt.length ? Math.min(...rt) : 0, max: rt.length ? Math.max(...rt) : 0, loss: Math.round(100 * (N - got.u.size) / N), n: rt.length }, ev);
       RES.pair.guest = C.mine; logLine(t("p_done"));
-      try { C.dcR.send(JSON.stringify({ k: "res", r: C.mine })); } catch (_) { }
+      try { C.dcR.send(JSON.stringify({ k: "res", r: C.mine, pub: await myHashes() })); } catch (_) { }
       showPairResult(); render(); finish();
     } else {
       const ev = await evidence(); if (!alive()) return;
@@ -608,7 +623,7 @@ document.addEventListener("DOMContentLoaded", () => {
   $("btnCopy").onclick = async () => { const ta = $("rep"); ta.value = buildReport(); try { await navigator.clipboard.writeText(ta.value); } catch (_) { ta.select(); try { document.execCommand("copy"); } catch (__) { } } $("copied").textContent = t("copied"); setTimeout(() => $("copied").textContent = "", 2500); };
   render(); runTests();
 });
-window.__vnt = { RES, render, buildReport, startPairing, stopPairing, runTests, linkKind, privAddr, same64, cleanResult };
+window.__vnt = { RES, render, buildReport, startPairing, stopPairing, runTests, linkKind, privAddr, same64, cleanResult, samePublic, pubHash };
 </script>
 </body>
 </html>
