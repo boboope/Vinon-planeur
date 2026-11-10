@@ -103,11 +103,12 @@ textarea{width:100%;min-height:210px;font:12.5px/1.5 ui-monospace,SFMono-Regular
 // ---------- what is tested (an automated test harness may replace it before load; the address cannot) ----------
 const CFG = window.__VNT_TEST__ || {
   ntfy: [{ name: "ntfy.sh", base: "https://ntfy.sh", port: 443 }],
-  mqtt: [
+  mqtt: [                                             // user and pass are the public ones these services publish for anyone
+    { name: "shiftr.io", url: "wss://public.cloud.shiftr.io/", port: 443, user: "public", pass: "public" },
+    { name: "TBMQ", url: "wss://demo.tbmq.io/mqtt", port: 443, user: "demo" },
     { name: "EMQX", url: "wss://broker.emqx.io:8084/mqtt", port: 8084 },
     { name: "HiveMQ", url: "wss://broker.hivemq.com:8884/mqtt", port: 8884 },
-    { name: "Mosquitto", url: "wss://test.mosquitto.org:8081/", port: 8081 },
-    { name: "Eclipse", url: "wss://mqtt.eclipseprojects.io:443/mqtt", port: 443 }
+    { name: "Mosquitto", url: "wss://test.mosquitto.org:8081/", port: 8081 }
   ],
   stun: [
     { name: "Google", url: "stun:stun.l.google.com:19302" },
@@ -115,12 +116,12 @@ const CFG = window.__VNT_TEST__ || {
     { name: "Nextcloud (443)", url: "stun:stun.nextcloud.com:443" }
   ]
 };
-const TIMEOUT_REL = 9000, TIMEOUT_PAIR = 30000;
+const VER = "1.1", TIMEOUT_REL = 9000, TIMEOUT_PAIR = 30000;
 
 // ---------- texts ----------
 const TX = {
   fr: {
-    title: "Test réseau · Planeur de poche", sub: "Association Aéronautique du Verdon · à faire sur place, avec les appareils qui serviront.",
+    title: "Test réseau · Planeur de poche", sub: "Association Aéronautique Verdon Alpilles (AAVA) · à faire sur place, avec les appareils qui serviront.",
     h1: "1 · Ce navigateur et ce réseau", rerun: "Relancer les tests",
     n1: "Cette page n’envoie aucune donnée personnelle. Elle contacte des services publics gratuits (ntfy.sh, des serveurs MQTT publics, des serveurs STUN de Google, Cloudflare et Nextcloud) : ils voient l’adresse IP de l’appareil, comme n’importe quel site.",
     h2: "2 · Deux appareils", n2: "Sur un premier appareil, crée un code. Sur le deuxième, saisis-le : les deux appareils essaient de se parler directement. Idéal : un téléphone en 4G et un autre sur le Wi-Fi du lieu, puis les deux sur le même Wi-Fi.",
@@ -131,13 +132,13 @@ const TX = {
     env_ok: "Tout y est : HTTPS, WebRTC, chiffrement, WebSocket.", env_bad: "Il manque : {list}.", env_enc: "chiffrement (WebCrypto)",
     net_none: "non communiquée par le navigateur",
     stun_ok: "adresse publique obtenue en {ms} ms", stun_none: "aucune réponse (UDP bloqué, ou pas d’accès)",
-    nat_easy: "favorable : tous les serveurs voient la même adresse et le même port.", nat_hard: "difficile : le port change selon le serveur (NAT symétrique). Un lien direct à travers Internet risque d’échouer ; sur le même réseau local, il marche en général.",
-    nat_multi: "plusieurs adresses publiques : à interpréter avec prudence.", nat_unknown: "indéterminé (STUN inaccessible).", nat_one: "un seul serveur a répondu : indéterminé.",
+    nat_easy: "favorable : tous les serveurs voient la même adresse et le même port.", nat_hard: "probablement difficile : le port change selon le serveur (NAT symétrique). Un lien direct à travers Internet risque d’échouer ; sur le même réseau local, il marche en général.",
+    nat_multi: "plusieurs adresses publiques IPv4 (plusieurs connexions actives ?) : à interpréter avec prudence.", nat_v6only: "seule une adresse IPv6 a répondu : rien à conclure pour l’IPv4.", nat_v6: " Une adresse IPv6 publique est aussi présente.", nat_unknown: "indéterminé (STUN inaccessible).", nat_one: "un seul serveur a répondu : indéterminé.",
     cand_mdns: "masquées par le navigateur (mDNS, c’est normal)", cand_ip: "visibles (adresses IP locales)", cand_none: "aucune obtenue", cand_v6: " · IPv6 présent", cand_v4: " · IPv4 présent",
     v1_good: "Les relais gratuits sont accessibles ({n}).", v1_good_d: "Deux appareils peuvent se découvrir avec un simple code, sans serveur à installer.",
     v1_one: "Un seul relais accessible ({n}).", v1_one_d: "Ça marche, mais sans solution de secours. À refaire dans un autre lieu.",
     v1_none: "Aucun relais accessible.", v1_none_d: "Le réseau bloque ces services (courant sur les Wi-Fi d’entreprise ou d’invités). Essaie le partage de connexion d’un téléphone.",
-    p_wait: "En attente de l’autre appareil…", p_open: "Relais ouverts : {names}.", p_hello: "L’autre appareil est là (via {via}).", p_offer: "Offre envoyée.", p_answer: "Réponse envoyée.",
+    p_wait: "En attente de l’autre appareil…", p_open: "Relais ouverts : {names}.", p_late: "Relais ouvert aussi : {n}.", p_hello: "L’autre appareil est là (via {via}).", p_offer: "Offre envoyée.", p_answer: "Réponse envoyée.",
     p_conn: "Lien direct établi.", p_fail: "Pas de lien direct après {s} s.", p_bad: "Code non valide : 8 caractères (lettres et chiffres).", p_noch: "Aucun relais accessible : impossible de s’appairer d’ici.",
     p_ice: "État du lien : {s}", p_test: "Mesure en cours…", p_done: "Mesure terminée.", p_nopeer: "L’autre appareil n’a pas répondu en {s} s (code erroné, ou page fermée ?).", p_cand: "Adresses essayées : {c}.",
     p_res: "Résultat reçu de l’autre appareil.",
@@ -149,7 +150,7 @@ const TX = {
     rp_pairline: "{role} : lien direct {link}, médiane {med} ms (min {min}, max {max}), pertes {loss} %, {proto}{net}", rp_hostline: "{role} : lien direct {link}, {proto}{net}", rp_failline: "{role} : pas de lien direct"
   },
   en: {
-    title: "Network test · Pocket Glider", sub: "Association Aéronautique du Verdon · to run on site, with the devices that will be used.",
+    title: "Network test · Pocket Glider", sub: "Association Aéronautique Verdon Alpilles (AAVA) · to run on site, with the devices that will be used.",
     h1: "1 · This browser and this network", rerun: "Run the tests again",
     n1: "This page sends no personal data. It contacts free public services (ntfy.sh, public MQTT servers, STUN servers run by Google, Cloudflare and Nextcloud): they see the device’s IP address, like any website.",
     h2: "2 · Two devices", n2: "On a first device, create a code. On the second, type it in: the two devices try to talk to each other directly. Ideal: one phone on 4G and another on the venue’s Wi-Fi, then both on the same Wi-Fi.",
@@ -160,13 +161,13 @@ const TX = {
     env_ok: "Everything is there: HTTPS, WebRTC, encryption, WebSocket.", env_bad: "Missing: {list}.", env_enc: "encryption (WebCrypto)",
     net_none: "not provided by the browser",
     stun_ok: "public address obtained in {ms} ms", stun_none: "no answer (UDP blocked, or no access)",
-    nat_easy: "favourable: every server sees the same address and port.", nat_hard: "difficult: the port changes with the server (symmetric NAT). A direct link across the internet may fail; on the same local network it usually works.",
-    nat_multi: "several public addresses: interpret with care.", nat_unknown: "undetermined (STUN unreachable).", nat_one: "only one server answered: undetermined.",
+    nat_easy: "favourable: every server sees the same address and port.", nat_hard: "probably difficult: the port changes with the server (symmetric NAT). A direct link across the internet may fail; on the same local network it usually works.",
+    nat_multi: "several public IPv4 addresses (several active connections?): interpret with care.", nat_v6only: "only an IPv6 address answered: nothing to conclude for IPv4.", nat_v6: " A public IPv6 address is also present.", nat_unknown: "undetermined (STUN unreachable).", nat_one: "only one server answered: undetermined.",
     cand_mdns: "hidden by the browser (mDNS, normal)", cand_ip: "visible (local IP addresses)", cand_none: "none obtained", cand_v6: " · IPv6 present", cand_v4: " · IPv4 present",
     v1_good: "The free relays are reachable ({n}).", v1_good_d: "Two devices can find each other with a simple code, with no server to install.",
     v1_one: "Only one relay is reachable ({n}).", v1_one_d: "It works, but with no fallback. Repeat at another venue.",
     v1_none: "No relay is reachable.", v1_none_d: "The network blocks these services (common on company or guest Wi-Fi). Try a phone’s hotspot.",
-    p_wait: "Waiting for the other device…", p_open: "Relays open: {names}.", p_hello: "The other device is here (via {via}).", p_offer: "Offer sent.", p_answer: "Answer sent.",
+    p_wait: "Waiting for the other device…", p_open: "Relays open: {names}.", p_late: "Relay also open: {n}.", p_hello: "The other device is here (via {via}).", p_offer: "Offer sent.", p_answer: "Answer sent.",
     p_conn: "Direct link established.", p_fail: "No direct link after {s} s.", p_bad: "Invalid code: 8 characters (letters and digits).", p_noch: "No relay reachable: cannot pair from here.",
     p_ice: "Link state: {s}", p_test: "Measuring…", p_done: "Measurement finished.", p_nopeer: "The other device did not answer within {s} s (wrong code, or page closed?).", p_cand: "Address types tried: {c}.",
     p_res: "Result received from the other device.",
@@ -249,16 +250,16 @@ const cat = (...a) => { let n = 0; a.forEach(x => n += x.length); const o = new 
 const mStr = s => { const b = enc.encode(s), o = new Uint8Array(2 + b.length); o[0] = b.length >> 8; o[1] = b.length & 255; o.set(b, 2); return o; };
 const mLen = n => { const o = []; do { let d = n % 128; n = Math.floor(n / 128); if (n > 0) d |= 128; o.push(d); } while (n > 0); return new Uint8Array(o); };
 const mPkt = (type, body) => cat(new Uint8Array([type]), mLen(body.length), body);
-function mqttConnect(url, onPublish) {
+function mqttConnect(c, onPublish) {
   return new Promise((resolve, reject) => {
     let ws, buf = new Uint8Array(0), ping, state = "connecting", subId = 0, h; const waiters = {};
-    try { ws = new WebSocket(url, "mqtt"); } catch (e) { return reject(e); }
+    try { ws = new WebSocket(c.url, "mqtt"); } catch (e) { return reject(e); }
     ws.binaryType = "arraybuffer";
     const fail = e => { clearInterval(ping); if (state === "connecting") { state = "failed"; clearTimeout(h); try { ws.close(); } catch (_) { } reject(e); } };
     h = setTimeout(() => fail(new Error("timeout")), TIMEOUT_REL);
     ws.onerror = () => fail(new Error("blocked"));
     ws.onclose = () => fail(new Error("blocked"));
-    ws.onopen = () => ws.send(mPkt(0x10, cat(mStr("MQTT"), new Uint8Array([4, 2, 0, 30]), mStr("vnt-" + rnd(6)))));
+    ws.onopen = () => ws.send(mPkt(0x10, cat(mStr("MQTT"), new Uint8Array([4, 2 | (c.user ? 0x80 : 0) | (c.user && c.pass ? 0x40 : 0), 0, 30]), mStr("vnt-" + rnd(6)), c.user ? mStr(c.user) : new Uint8Array(0), c.user && c.pass ? mStr(c.pass) : new Uint8Array(0))));
     const api = {
       send(topic, text) { ws.send(mPkt(0x30, cat(mStr(topic), enc.encode(text)))); return Promise.resolve(); },
       sub(topic) { return new Promise((res, rej) => { const id = ++subId; waiters[id] = res; ws.send(mPkt(0x82, cat(new Uint8Array([id >> 8, id & 255]), mStr(topic), new Uint8Array([0])))); setTimeout(() => rej(new Error("timeout")), 6000); }); },
@@ -284,7 +285,7 @@ function mqttConnect(url, onPublish) {
 const mqttTransport = c => ({
   name: c.name,
   async open(topic, onText) {
-    const full = "vnt/" + topic, m = await mqttConnect(c.url, (tp, pl) => { if (tp === full) onText(pl); });
+    const full = "vnt/" + topic, m = await mqttConnect(c, (tp, pl) => { if (tp === full) onText(pl); });
     try { await m.sub(full); } catch (e) { m.close(); throw e; }
     return { send: text => m.send(full, text), close: () => m.close() };
   }
@@ -310,7 +311,7 @@ function gather(iceServers, ms) {                    // one peer connection = on
   });
 }
 async function runTests() {
-  RES.relays = []; RES.stun = []; RES.nat = null; RES.cand = null; RES.done = false; render();
+  RES.relays = []; RES.stun = []; RES.nat = null; RES.natV6 = false; RES.cand = null; RES.done = false; render();
   checkEnv();
   const trs = transports();
   trs.forEach(tr => RES.relays.push({ kind: tr.kind, name: tr.cfg.name, port: tr.cfg.port, state: "run" }));
@@ -318,23 +319,28 @@ async function runTests() {
   render();
   const jobs = [];
   trs.forEach((tr, i) => jobs.push(relayEcho(tr).then(ms => { Object.assign(RES.relays[i], { state: "ok", ms }); }, e => { Object.assign(RES.relays[i], { state: errKind(e) }); }).then(render)));
+  let natRaw = null;                                 // IPv4 only: an IPv6 address is public as it is, and must not be read as "several addresses"
   if (window.RTCPeerConnection) {
     CFG.stun.forEach((s, i) => jobs.push(gather([{ urls: s.url }], 6000).then(o => {
-      const sr = o.cands.filter(c => c.type === "srflx"); Object.assign(RES.stun[i], sr.length ? { state: "ok", ms: o.first } : { state: "blocked" });
-      if (i === 0) RES.cand = candSummary(o.cands);
+      const sr = o.cands.filter(c => c.type === "srflx"); Object.assign(RES.stun[i], sr.length ? { state: "ok", ms: o.first, v4: sr.some(c => !c.addr.includes(":")) } : { state: "blocked" });
     }).then(render)));
     jobs.push(gather(CFG.stun.map(s => ({ urls: s.url })), 7000).then(o => {
-      const sr = o.cands.filter(c => c.type === "srflx" && c.proto === "udp"), ips = new Set(sr.map(c => c.addr)), ports = new Set(sr.map(c => c.port));
-      RES.nat = !sr.length ? "unknown" : (RES.stun.filter(s => s.state === "ok").length < 2 ? "one" : ips.size > 1 ? "multi" : ports.size > 1 ? "hard" : "easy");
-      if (!RES.cand || !RES.cand.n) RES.cand = candSummary(o.cands);
+      const sr = o.cands.filter(c => c.type === "srflx" && c.proto === "udp"), v4 = sr.filter(c => !c.addr.includes(":"));
+      natRaw = { n: sr.length, n4: v4.length, ips: new Set(v4.map(c => c.addr)).size, pairs: new Set(v4.map(c => c.addr + " " + c.port)).size, v6: sr.length > v4.length };
+      RES.cand = candSummary(o.cands);
     }).then(render));
-  } else { RES.nat = "unknown"; RES.stun.forEach(s => s.state = "blocked"); }
+  } else RES.stun.forEach(s => s.state = "blocked");
   await Promise.allSettled(jobs);
+  if (!natRaw || !natRaw.n) RES.nat = "unknown";
+  else if (!natRaw.n4) RES.nat = "v6only";
+  else if (RES.stun.filter(s => s.state === "ok" && s.v4).length < 2) RES.nat = "one";
+  else RES.nat = natRaw.ips > 1 ? "multi" : natRaw.pairs > 1 ? "hard" : "easy";
+  RES.natV6 = !!(natRaw && natRaw.v6 && natRaw.n4);
   RES.done = true; render();
 }
-function candSummary(cs) {
+function candSummary(cs) {                          // hidden (.local) names say nothing about IPv4 or IPv6: only literal addresses count
   const hosts = cs.filter(c => c.type === "host");
-  return { n: hosts.length, mdns: hosts.some(c => /\.local$/i.test(c.addr)), v6: hosts.some(c => c.addr.includes(":")), v4: hosts.some(c => /^\d+\.\d+\.\d+\.\d+$/.test(c.addr) || /\.local$/i.test(c.addr)) };
+  return { n: hosts.length, mdns: hosts.some(c => /\.local$/i.test(c.addr)), v6: cs.some(c => c.addr.includes(":")), v4: cs.some(c => /^\d+\.\d+\.\d+\.\d+$/.test(c.addr)) };
 }
 
 // ================================================================================================
@@ -360,7 +366,7 @@ function render() {
   }
   RES.relays.forEach(r => addRow(r.kind === "ntfy" ? t("r_ntfy", { p: r.port }) : t("r_mqtt", { n: r.name, p: r.port }), r.state === "ok" ? "ok" : r.state === "run" ? "run" : "bad", relayDetail(r)));
   RES.stun.forEach(s => addRow(t("r_stun", { n: s.name }), s.state === "ok" ? "ok" : s.state === "run" ? "run" : "bad", s.state === "ok" ? t("stun_ok", { ms: s.ms }) : s.state === "run" ? "" : t("stun_none")));
-  if (RES.stun.length) addRow(t("r_nat"), RES.nat ? (RES.nat === "easy" ? "ok" : RES.nat === "hard" || RES.nat === "multi" ? "warn" : "warn") : "run", RES.nat ? t("nat_" + RES.nat) : "");
+  if (RES.stun.length) addRow(t("r_nat"), RES.nat ? (RES.nat === "easy" ? "ok" : RES.nat === "hard" || RES.nat === "multi" ? "warn" : "warn") : "run", RES.nat ? t("nat_" + RES.nat) + (RES.natV6 ? t("nat_v6") : "") : "");
   if (RES.stun.length) { const c = RES.cand; addRow(t("r_cand"), c ? (c.n ? "ok" : "warn") : "run", c ? (c.n ? (c.mdns ? t("cand_mdns") : t("cand_ip")) + (c.v4 ? t("cand_v4") : "") + (c.v6 ? t("cand_v6") : "") : t("cand_none")) : ""); }
   const v1 = $("v1");
   if (RES.done) {
@@ -386,10 +392,18 @@ async function unseal(key, text) { const u = unb64(text); return JSON.parse(dec.
 
 class Chan {
   constructor(code, role) { this.code = code; this.role = role; this.seen = new Set(); this.live = []; this.onmsg = () => { }; this.via = {}; }
-  async open() {
+  async open(onLate) {                               // answers 1.5 s after the first relay opens (or when all have answered); a slower relay joins when it can
     this.key = await keyFor(this.code); this.topic = await topicFor(this.code);
-    await Promise.all(transports().map(async tr => { try { const h = await tr.open(this.topic, txt => this._in(txt, tr.cfg.name)); this.live.push({ name: tr.cfg.name, h }); } catch (_) { } }));
-    return this.live.map(l => l.name);
+    return new Promise(resolve => {
+      const trs = transports(); let left = trs.length, grace = null, told = false;
+      const tell = () => { if (told) return; told = true; clearTimeout(grace); resolve(this.live.map(l => l.name)); };
+      if (!left) return tell();
+      trs.forEach(tr => tr.open(this.topic, txt => this._in(txt, tr.cfg.name)).then(h => {
+        if (this.closed) { try { h.close(); } catch (_) { } return; }
+        this.live.push({ name: tr.cfg.name, h });
+        if (told) { if (onLate) onLate(tr.cfg.name); } else if (!grace) grace = setTimeout(tell, 1500);
+      }, () => { }).then(() => { if (--left === 0) tell(); }));
+    });
   }
   async post(obj) { obj.n = rnd(6); obj.f = this.role; const txt = await seal(this.key, obj); await Promise.allSettled(this.live.map(l => l.h.send(txt))); }
   async _in(txt, via) {
@@ -397,7 +411,7 @@ class Chan {
     if (m.f === this.role || this.seen.has(m.n)) return; this.seen.add(m.n); m.via = via;
     try { this.onmsg(m); } catch (e) { logLine("! " + e.message); }
   }
-  close() { this.live.forEach(l => { try { l.h.close(); } catch (_) { } }); this.live = []; }
+  close() { this.closed = true; this.live.forEach(l => { try { l.h.close(); } catch (_) { } }); this.live = []; }
 }
 
 let CUR = null;                                                  // the pairing in progress
@@ -424,7 +438,7 @@ async function startPairing(role, code) {
   const finish = () => { $("btnHost").disabled = $("btnJoin").disabled = false; };
   const chan = C.chan = new Chan(code, role === "host" ? "A" : "B");
   logLine(t("p_wait"));
-  const names = await chan.open();
+  const names = await chan.open(n => { if (alive()) logLine(t("p_late", { n })); });
   if (!alive()) return;
   if (!names.length) { verdict2("bad", t("v2_fail"), t("p_noch")); finish(); return; }
   logLine(t("p_open", { names: names.join(", ") }));
@@ -508,20 +522,20 @@ async function startPairing(role, code) {
 // ================================================================================================
 function buildReport() {
   const L = [], d = new Date(), z = n => String(n).padStart(2, "0");
-  L.push(t("rp_head") + " · " + z(d.getDate()) + "/" + z(d.getMonth() + 1) + "/" + d.getFullYear() + " " + z(d.getHours()) + ":" + z(d.getMinutes()));
+  L.push(t("rp_head") + " (v" + VER + ") · " + z(d.getDate()) + "/" + z(d.getMonth() + 1) + "/" + d.getFullYear() + " " + z(d.getHours()) + ":" + z(d.getMinutes()));
   if (RES.env) L.push(t("rp_dev") + " : " + RES.env.ua + (RES.env.miss.length ? " · " + t("env_bad", { list: RES.env.miss.map(m => m === "*enc" ? t("env_enc") : m).join(", ") }) : ""));
   L.push(t("rp_conn") + " : " + (RES.conn || t("net_none")));
   const rs = RES.relays.map(r => r.name + (r.kind === "ntfy" ? " (" + r.port + ")" : " (" + r.port + ")") + " " + (r.state === "ok" ? "OK " + r.ms + " ms" : r.state === "run" ? "…" : t(r.state)));
   L.push(t("rp_relays") + " : " + (rs.join(" · ") || t("rp_none")));
   const ss = RES.stun.map(s => s.name + " " + (s.state === "ok" ? "OK " + s.ms + " ms" : s.state === "run" ? "…" : t("stun_none").split(" (")[0]));
   L.push(t("rp_stun") + " : " + (ss.join(" · ") || t("rp_none")));
-  L.push(t("rp_nat") + " : " + (RES.nat ? t("nat_" + RES.nat) : "…"));
+  L.push(t("rp_nat") + " : " + (RES.nat ? t("nat_" + RES.nat) + (RES.natV6 ? t("nat_v6") : "") : "…"));
   const c = RES.cand; L.push(t("rp_cand") + " : " + (c ? (c.n ? (c.mdns ? t("cand_mdns") : t("cand_ip")) + (c.v4 ? t("cand_v4") : "") + (c.v6 ? t("cand_v6") : "") : t("cand_none")) : "…"));
   const P = [["host", "role_host"], ["guest", "role_guest"]].map(([k, rk]) => {
     const r = RES.pair[k]; if (!r) return null;
     if (!r.ok) return t("rp_failline", { role: t(rk) });
-    if (r.med == null) return t("rp_hostline", { role: t(rk), link: t("link_" + r.link), proto: r.proto, net: r.net ? " · " + r.net : "" });
-    return t("rp_pairline", { role: t(rk), link: t("link_" + r.link), med: r.med, min: r.min, max: r.max, loss: r.loss, proto: r.proto, net: r.net ? " · " + r.net : "" });
+    if (r.med == null) return t("rp_hostline", { role: t(rk), link: t("link_" + r.link), proto: r.proto, net: r.net && r.net !== "unknown" ? " · " + r.net : "" });
+    return t("rp_pairline", { role: t(rk), link: t("link_" + r.link), med: r.med, min: r.min, max: r.max, loss: r.loss, proto: r.proto, net: r.net && r.net !== "unknown" ? " · " + r.net : "" });
   }).filter(Boolean);
   L.push(t("rp_pair") + " : " + (P.length ? "" : t("rp_none"))); P.forEach(x => L.push("  " + x));
   return L.join("\n");
