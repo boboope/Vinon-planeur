@@ -17,8 +17,10 @@ Elle répond à une question : sur ce réseau, deux appareils (téléphone, tabl
 
 À faire deux fois :
 
-- un téléphone en 4G et l'autre appareil sur le Wi-Fi du lieu. Sur le téléphone, couper le Wi-Fi ; vérifier aussi qu'il ne partage pas sa connexion avec l'autre appareil (ni câble, ni partage de connexion), sinon l'essai ne prouve rien ;
+- un téléphone en 4G et l'autre appareil sur le Wi-Fi du lieu. Sur le téléphone, couper le Wi-Fi. Dans ce cas la page laisse de côté les adresses locales : seul un lien à travers Internet peut réussir. Sans cela, un téléphone et un ordinateur du même propriétaire se trouvent un chemin privé (partage de connexion, câble, Bluetooth) et l'essai ne prouve rien ;
 - puis les deux appareils sur le même Wi-Fi.
+
+Si l'essai en 4G échoue, c'est un vrai résultat : entre ces deux réseaux, un lien direct n'est pas possible.
 
 Le rapport dit si le lien direct reste sur le même réseau ou s'il traverse Internet, et sur quels indices. Quand la page ne peut pas le savoir, elle l'écrit.
 
