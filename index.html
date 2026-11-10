@@ -19,6 +19,8 @@ h2{font-size:17px;margin:0 0 8px}
 .seg{display:inline-flex;background:#E9E6DC;border-radius:999px;padding:3px;flex:none}
 .seg button{border:0;background:transparent;border-radius:999px;padding:6px 12px;font-weight:700;color:var(--muted);font-size:13px;cursor:pointer}
 .seg button[aria-pressed="true"]{background:var(--ink);color:#fff}
+.seg.big button{padding:10px 14px;font-size:15px}
+.seg.need{outline:3px solid var(--warn);outline-offset:3px}
 section{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin:12px 0}
 .note{font-size:13.5px;color:var(--muted);margin:8px 0 0}
 ul.rows{list-style:none;margin:0;padding:0}
@@ -66,6 +68,9 @@ textarea{width:100%;min-height:210px;font:12.5px/1.5 ui-monospace,SFMono-Regular
 <section id="s2">
   <h2 id="h2"></h2>
   <p class="note" id="n2" style="margin-top:0"></p>
+  <div class="row"><span id="netLbl"></span>
+    <div class="seg big" id="netSeg" role="group"><button type="button" id="netW" aria-pressed="false"></button><button type="button" id="netM" aria-pressed="false"></button><button type="button" id="netC" aria-pressed="false"></button></div>
+  </div>
   <div class="row">
     <button class="btn" id="btnHost"></button>
     <span id="or"></span>
@@ -116,7 +121,7 @@ const CFG = window.__VNT_TEST__ || {
     { name: "Nextcloud (443)", url: "stun:stun.nextcloud.com:443" }
   ]
 };
-const VER = "1.1", TIMEOUT_REL = 9000, TIMEOUT_PAIR = 30000;
+const VER = "1.2", TIMEOUT_REL = 9000, TIMEOUT_PAIR = 30000;
 
 // ---------- texts ----------
 const TX = {
@@ -124,16 +129,17 @@ const TX = {
     title: "Test réseau · Planeur de poche", sub: "Association Aéronautique Verdon Alpilles (AAVA) · à faire sur place, avec les appareils qui serviront.",
     h1: "1 · Ce navigateur et ce réseau", rerun: "Relancer les tests",
     n1: "Cette page n’envoie aucune donnée personnelle. Elle contacte des services publics gratuits (ntfy.sh, des serveurs MQTT publics, des serveurs STUN de Google, Cloudflare et Nextcloud) : ils voient l’adresse IP de l’appareil, comme n’importe quel site.",
-    h2: "2 · Deux appareils", n2: "Sur un premier appareil, crée un code. Sur le deuxième, saisis-le : les deux appareils essaient de se parler directement. Idéal : un téléphone en 4G et un autre sur le Wi-Fi du lieu, puis les deux sur le même Wi-Fi.",
+    h2: "2 · Deux appareils", n2: "Sur un premier appareil, crée un code. Sur le deuxième, saisis-le : les deux appareils essaient de se parler directement. À faire deux fois : un téléphone en 4G (Wi-Fi coupé, et sans partage de connexion ni câble vers l’autre appareil) et l’autre appareil sur le Wi-Fi du lieu ; puis les deux sur le même Wi-Fi.",
+    netLbl: "Cet appareil est connecté par :", netW: "Wi-Fi", netM: "4G / 5G", netC: "Câble", p_pick: "Indique d’abord comment cet appareil est connecté : Wi-Fi, 4G / 5G ou câble.",
     host: "Créer un code", or: "ou", join: "Connecter", hostHint: "Saisis ce code sur l’autre appareil (garde cette page ouverte) :",
     h3: "3 · Rapport à copier", copy: "Copier le rapport", copied: "Copié.", n3: "Le rapport ne contient ni adresse IP ni nom : tu peux le coller dans un message pour la personne qui organise le test.",
     r_env: "Navigateur", r_net: "Connexion annoncée", r_ntfy: "Relais ntfy.sh (port {p})", r_mqtt: "Relais MQTT {n} (port {p})", r_stun: "STUN {n}", r_nat: "Boîtier du réseau (NAT)", r_cand: "Adresses locales",
-    ok: "OK", blocked: "inaccessible", timeout: "pas de réponse", ms: "aller-retour {ms} ms",
+    ok: "OK", blocked: "inaccessible", timeout: "pas de réponse", noecho: "connecté, mais le message d’essai n’est pas revenu", ms: "aller-retour {ms} ms",
     env_ok: "Tout y est : HTTPS, WebRTC, chiffrement, WebSocket.", env_bad: "Il manque : {list}.", env_enc: "chiffrement (WebCrypto)",
     net_none: "non communiquée par le navigateur",
     stun_ok: "adresse publique obtenue en {ms} ms", stun_none: "aucune réponse (UDP bloqué, ou pas d’accès)",
     nat_easy: "favorable : tous les serveurs voient la même adresse et le même port.", nat_hard: "probablement difficile : le port change selon le serveur (NAT symétrique). Un lien direct à travers Internet risque d’échouer ; sur le même réseau local, il marche en général.",
-    nat_multi: "plusieurs adresses publiques IPv4 (plusieurs connexions actives ?) : à interpréter avec prudence.", nat_v6only: "seule une adresse IPv6 a répondu : rien à conclure pour l’IPv4.", nat_v6: " Une adresse IPv6 publique est aussi présente.", nat_unknown: "indéterminé (STUN inaccessible).", nat_one: "un seul serveur a répondu : indéterminé.",
+    nat_multi: "{n} adresses publiques IPv4 : cet appareil a sans doute plusieurs connexions actives en même temps (Wi-Fi et partage de connexion d’un téléphone, VPN…). À interpréter avec prudence.", nat_v6only: "seule une adresse IPv6 a répondu : rien à conclure pour l’IPv4.", nat_v6: " Une adresse IPv6 publique est aussi présente.", nat_unknown: "indéterminé (STUN inaccessible).", nat_one: "un seul serveur a répondu : indéterminé.",
     cand_mdns: "masquées par le navigateur (mDNS, c’est normal)", cand_ip: "visibles (adresses IP locales)", cand_none: "aucune obtenue", cand_v6: " · IPv6 présent", cand_v4: " · IPv4 présent",
     v1_good: "Les relais gratuits sont accessibles ({n}).", v1_good_d: "Deux appareils peuvent se découvrir avec un simple code, sans serveur à installer.",
     v1_one: "Un seul relais accessible ({n}).", v1_one_d: "Ça marche, mais sans solution de secours. À refaire dans un autre lieu.",
@@ -142,27 +148,30 @@ const TX = {
     p_conn: "Lien direct établi.", p_fail: "Pas de lien direct après {s} s.", p_bad: "Code non valide : 8 caractères (lettres et chiffres).", p_noch: "Aucun relais accessible : impossible de s’appairer d’ici.",
     p_ice: "État du lien : {s}", p_test: "Mesure en cours…", p_done: "Mesure terminée.", p_nopeer: "L’autre appareil n’a pas répondu en {s} s (code erroné, ou page fermée ?).", p_cand: "Adresses essayées : {c}.",
     p_res: "Résultat reçu de l’autre appareil.",
-    v2_local: "Lien direct établi, sur le réseau local.", v2_net: "Lien direct établi, à travers Internet.", v2_relay: "Lien établi par un relais.", v2_fail: "Pas de lien direct.",
+    v2_local: "Lien direct établi, sur le même réseau.", v2_net: "Lien direct établi, à travers Internet.", v2_relay: "Lien établi par un relais.", v2_unknown: "Lien direct établi. La page n’a pas pu déterminer s’il reste sur le même réseau ou s’il traverse Internet.", v2_fail: "Pas de lien direct.",
     v2_d: "Aller-retour médian {med} ms (min {min}, max {max}). Pertes sur canal non fiable : {loss} %.",
     v2_fail_d: "Causes probables : le Wi-Fi isole les appareils entre eux (courant sur les réseaux invités), l’UDP est bloqué, ou l’un des deux est derrière un NAT symétrique. Essaie le partage de connexion d’un téléphone.",
-    rp_head: "Test réseau · Planeur de poche", rp_dev: "Appareil", rp_conn: "Connexion annoncée", rp_relays: "Relais", rp_stun: "STUN", rp_nat: "NAT", rp_cand: "Adresses locales", rp_pair: "Lien entre deux appareils", rp_none: "non testé",
-    role_host: "créateur du code", role_guest: "invité", link_local: "réseau local", link_net: "Internet (NAT)", link_relay: "relais",
-    rp_pairline: "{role} : lien direct {link}, médiane {med} ms (min {min}, max {max}), pertes {loss} %, {proto}{net}", rp_hostline: "{role} : lien direct {link}, {proto}{net}", rp_failline: "{role} : pas de lien direct"
+    rp_head: "Test réseau · Planeur de poche", rp_dev: "Appareil", rp_conn: "Connexion annoncée", rp_unet: "Connexion indiquée par la personne", rp_relays: "Relais", rp_stun: "STUN", rp_nat: "NAT", rp_cand: "Adresses locales", rp_pair: "Lien entre deux appareils", rp_none: "non testé",
+    role_host: "créateur du code", role_guest: "invité", link_local: "même réseau", link_net: "à travers Internet", link_relay: "par un relais", link_unknown: "même réseau ou Internet : non déterminé",
+    sp_yes: "oui", sp_no: "non", sp_unk: "inconnu", un_wifi: "Wi-Fi", un_mobile: "4G/5G", un_cable: "câble", un_none: "connexion non indiquée",
+    rp_ev: " · indices : {lt}/{rt}, même adresse publique : {sp} · autre appareil : {pn}",
+    rp_pairline: "{role} : lien direct, {link} ; médiane {med} ms (min {min}, max {max}), pertes {loss} %{proto}{ev}", rp_hostline: "{role} : lien direct, {link}{proto}{ev}", rp_failline: "{role} : pas de lien direct"
   },
   en: {
     title: "Network test · Pocket Glider", sub: "Association Aéronautique Verdon Alpilles (AAVA) · to run on site, with the devices that will be used.",
     h1: "1 · This browser and this network", rerun: "Run the tests again",
     n1: "This page sends no personal data. It contacts free public services (ntfy.sh, public MQTT servers, STUN servers run by Google, Cloudflare and Nextcloud): they see the device’s IP address, like any website.",
-    h2: "2 · Two devices", n2: "On a first device, create a code. On the second, type it in: the two devices try to talk to each other directly. Ideal: one phone on 4G and another on the venue’s Wi-Fi, then both on the same Wi-Fi.",
+    h2: "2 · Two devices", n2: "On a first device, create a code. On the second, type it in: the two devices try to talk to each other directly. Do it twice: one phone on 4G (Wi-Fi off, and no hotspot or cable to the other device) with the other device on the venue’s Wi-Fi; then both on the same Wi-Fi.",
+    netLbl: "This device is connected by:", netW: "Wi-Fi", netM: "4G / 5G", netC: "Cable", p_pick: "First say how this device is connected: Wi-Fi, 4G / 5G or cable.",
     host: "Create a code", or: "or", join: "Connect", hostHint: "Type this code on the other device (keep this page open):",
     h3: "3 · Report to copy", copy: "Copy the report", copied: "Copied.", n3: "The report contains no IP address and no name: you can paste it into a message to whoever is organising the test.",
     r_env: "Browser", r_net: "Declared connection", r_ntfy: "ntfy.sh relay (port {p})", r_mqtt: "MQTT relay {n} (port {p})", r_stun: "STUN {n}", r_nat: "Network box (NAT)", r_cand: "Local addresses",
-    ok: "OK", blocked: "unreachable", timeout: "no answer", ms: "round trip {ms} ms",
+    ok: "OK", blocked: "unreachable", timeout: "no answer", noecho: "connected, but the test message did not come back", ms: "round trip {ms} ms",
     env_ok: "Everything is there: HTTPS, WebRTC, encryption, WebSocket.", env_bad: "Missing: {list}.", env_enc: "encryption (WebCrypto)",
     net_none: "not provided by the browser",
     stun_ok: "public address obtained in {ms} ms", stun_none: "no answer (UDP blocked, or no access)",
     nat_easy: "favourable: every server sees the same address and port.", nat_hard: "probably difficult: the port changes with the server (symmetric NAT). A direct link across the internet may fail; on the same local network it usually works.",
-    nat_multi: "several public IPv4 addresses (several active connections?): interpret with care.", nat_v6only: "only an IPv6 address answered: nothing to conclude for IPv4.", nat_v6: " A public IPv6 address is also present.", nat_unknown: "undetermined (STUN unreachable).", nat_one: "only one server answered: undetermined.",
+    nat_multi: "{n} public IPv4 addresses: this device probably has several active connections at once (Wi-Fi and a phone’s hotspot, a VPN…). Interpret with care.", nat_v6only: "only an IPv6 address answered: nothing to conclude for IPv4.", nat_v6: " A public IPv6 address is also present.", nat_unknown: "undetermined (STUN unreachable).", nat_one: "only one server answered: undetermined.",
     cand_mdns: "hidden by the browser (mDNS, normal)", cand_ip: "visible (local IP addresses)", cand_none: "none obtained", cand_v6: " · IPv6 present", cand_v4: " · IPv4 present",
     v1_good: "The free relays are reachable ({n}).", v1_good_d: "Two devices can find each other with a simple code, with no server to install.",
     v1_one: "Only one relay is reachable ({n}).", v1_one_d: "It works, but with no fallback. Repeat at another venue.",
@@ -171,12 +180,14 @@ const TX = {
     p_conn: "Direct link established.", p_fail: "No direct link after {s} s.", p_bad: "Invalid code: 8 characters (letters and digits).", p_noch: "No relay reachable: cannot pair from here.",
     p_ice: "Link state: {s}", p_test: "Measuring…", p_done: "Measurement finished.", p_nopeer: "The other device did not answer within {s} s (wrong code, or page closed?).", p_cand: "Address types tried: {c}.",
     p_res: "Result received from the other device.",
-    v2_local: "Direct link established, on the local network.", v2_net: "Direct link established, across the internet.", v2_relay: "Link established through a relay.", v2_fail: "No direct link.",
+    v2_local: "Direct link established, on the same network.", v2_net: "Direct link established, across the internet.", v2_relay: "Link established through a relay.", v2_unknown: "Direct link established. The page could not tell whether it stays on the same network or crosses the internet.", v2_fail: "No direct link.",
     v2_d: "Median round trip {med} ms (min {min}, max {max}). Loss on the unreliable channel: {loss} %.",
     v2_fail_d: "Likely causes: the Wi-Fi isolates devices from each other (common on guest networks), UDP is blocked, or one of them is behind a symmetric NAT. Try a phone’s hotspot.",
-    rp_head: "Network test · Pocket Glider", rp_dev: "Device", rp_conn: "Declared connection", rp_relays: "Relays", rp_stun: "STUN", rp_nat: "NAT", rp_cand: "Local addresses", rp_pair: "Link between two devices", rp_none: "not tested",
-    role_host: "code creator", role_guest: "guest", link_local: "local network", link_net: "internet (NAT)", link_relay: "relay",
-    rp_pairline: "{role}: direct link {link}, median {med} ms (min {min}, max {max}), loss {loss} %, {proto}{net}", rp_hostline: "{role}: direct link {link}, {proto}{net}", rp_failline: "{role}: no direct link"
+    rp_head: "Network test · Pocket Glider", rp_dev: "Device", rp_conn: "Declared connection", rp_unet: "Connection stated by the person", rp_relays: "Relays", rp_stun: "STUN", rp_nat: "NAT", rp_cand: "Local addresses", rp_pair: "Link between two devices", rp_none: "not tested",
+    role_host: "code creator", role_guest: "guest", link_local: "same network", link_net: "across the internet", link_relay: "through a relay", link_unknown: "same network or internet: not determined",
+    sp_yes: "yes", sp_no: "no", sp_unk: "unknown", un_wifi: "Wi-Fi", un_mobile: "4G/5G", un_cable: "cable", un_none: "connection not stated",
+    rp_ev: " · evidence: {lt}/{rt}, same public address: {sp} · other device: {pn}",
+    rp_pairline: "{role}: direct link, {link}; median {med} ms (min {min}, max {max}), loss {loss} %{proto}{ev}", rp_hostline: "{role}: direct link, {link}{proto}{ev}", rp_failline: "{role}: no direct link"
   }
 };
 let lang = /^fr/i.test(navigator.language || "fr") ? "fr" : "en";
@@ -194,12 +205,12 @@ const unb64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
 const median = a => { const s = a.slice().sort((x, y) => x - y); return s.length ? s[Math.floor(s.length / 2)] : 0; };
 const now = () => performance.now();
 function logLine(s) { const el = $("log"); el.hidden = false; el.textContent += new Date().toTimeString().slice(0, 8) + "  " + s + "\n"; el.scrollTop = el.scrollHeight; }
-const errKind = e => (e && e.message === "timeout") || (e && e.message === "no echo") ? "timeout" : "blocked";
+const errKind = e => e && e.message === "timeout" ? "timeout" : e && e.message === "no echo" ? "noecho" : "blocked";
 
 // ================================================================================================
 // Results, kept as data and drawn by render() (so the language can change at any time)
 // ================================================================================================
-const RES = { env: null, conn: "", relays: [], stun: [], nat: null, cand: null, pair: {}, done: false };
+const RES = { env: null, conn: "", userNet: "", relays: [], stun: [], nat: null, natN: 0, cand: null, pair: {}, done: false };
 
 function uaShort() {
   const u = navigator.userAgent || ""; let b = "?", m;
@@ -335,7 +346,7 @@ async function runTests() {
   else if (!natRaw.n4) RES.nat = "v6only";
   else if (RES.stun.filter(s => s.state === "ok" && s.v4).length < 2) RES.nat = "one";
   else RES.nat = natRaw.ips > 1 ? "multi" : natRaw.pairs > 1 ? "hard" : "easy";
-  RES.natV6 = !!(natRaw && natRaw.v6 && natRaw.n4);
+  RES.natV6 = !!(natRaw && natRaw.v6 && natRaw.n4); RES.natN = natRaw ? natRaw.ips : 0;
   RES.done = true; render();
 }
 function candSummary(cs) {                          // hidden (.local) names say nothing about IPv4 or IPv6: only literal addresses count
@@ -346,6 +357,7 @@ function candSummary(cs) {                          // hidden (.local) names say
 // ================================================================================================
 // Drawing
 // ================================================================================================
+const NETBTN = [["netW", "wifi"], ["netM", "mobile"], ["netC", "cable"]], NETS = NETBTN.map(x => x[1]);
 function addRow(label, state, detail) {
   const li = document.createElement("li"); li.innerHTML = '<span class="dot"></span><b></b><span class="d"></span>';
   li.querySelector(".dot").className = "dot " + state; li.querySelector("b").textContent = label; li.querySelector(".d").textContent = detail || ""; $("rows").appendChild(li);
@@ -357,6 +369,7 @@ function render() {
   ["title", "sub", "h1", "h2", "h3", "n1", "n2", "n3"].forEach(k => { const el = $({ title: "tTitle", sub: "tSub" }[k] || k); if (el) el.textContent = t(k); });
   $("btnRerun").textContent = t("rerun"); $("btnHost").textContent = t("host"); $("or").textContent = t("or"); $("btnJoin").textContent = t("join"); $("hostHint").textContent = t("hostHint");
   $("btnCopy").textContent = t("copy"); $("lgFR").setAttribute("aria-pressed", lang === "fr"); $("lgEN").setAttribute("aria-pressed", lang === "en"); $("code").placeholder = "XXXX-XXXX";
+  $("netLbl").textContent = t("netLbl"); NETBTN.forEach(([id, v]) => { $(id).textContent = t(id); $(id).setAttribute("aria-pressed", RES.userNet === v); });
   const rows = $("rows"); rows.innerHTML = "";
   const e = RES.env;
   if (e) {
@@ -366,7 +379,7 @@ function render() {
   }
   RES.relays.forEach(r => addRow(r.kind === "ntfy" ? t("r_ntfy", { p: r.port }) : t("r_mqtt", { n: r.name, p: r.port }), r.state === "ok" ? "ok" : r.state === "run" ? "run" : "bad", relayDetail(r)));
   RES.stun.forEach(s => addRow(t("r_stun", { n: s.name }), s.state === "ok" ? "ok" : s.state === "run" ? "run" : "bad", s.state === "ok" ? t("stun_ok", { ms: s.ms }) : s.state === "run" ? "" : t("stun_none")));
-  if (RES.stun.length) addRow(t("r_nat"), RES.nat ? (RES.nat === "easy" ? "ok" : RES.nat === "hard" || RES.nat === "multi" ? "warn" : "warn") : "run", RES.nat ? t("nat_" + RES.nat) + (RES.natV6 ? t("nat_v6") : "") : "");
+  if (RES.stun.length) addRow(t("r_nat"), RES.nat ? (RES.nat === "easy" ? "ok" : RES.nat === "hard" || RES.nat === "multi" ? "warn" : "warn") : "run", RES.nat ? t("nat_" + RES.nat, { n: RES.natN }) + (RES.natV6 ? t("nat_v6") : "") : "");
   if (RES.stun.length) { const c = RES.cand; addRow(t("r_cand"), c ? (c.n ? "ok" : "warn") : "run", c ? (c.n ? (c.mdns ? t("cand_mdns") : t("cand_ip")) + (c.v4 ? t("cand_v4") : "") + (c.v6 ? t("cand_v6") : "") : t("cand_none")) : ""); }
   const v1 = $("v1");
   if (RES.done) {
@@ -420,19 +433,40 @@ function verdict2(kind, title, detail) {
   const v = $("v2"); v.hidden = !title; v.className = "verdict" + (kind === "ok" ? "" : kind === "warn" ? " warn" : " bad"); v.innerHTML = "";
   if (!title) return; const b = document.createElement("div"); b.textContent = title; v.appendChild(b); if (detail) { const p = document.createElement("p"); p.textContent = detail; v.appendChild(p); }
 }
+// Is an address private to a local network? (hidden .local names, RFC 1918, link-local, IPv6 unique-local and link-local)
+const privAddr = a => !!a && (/\.local$/i.test(a) || /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.)/.test(a) || /^(fe[89ab][0-9a-f]|f[cd][0-9a-f]{2}):/i.test(a));
+const v6parts = a => { if (!a || !a.includes(":")) return null; const [h, tl] = a.toLowerCase().split("%")[0].split("::"), hp = h ? h.split(":") : [], tp = tl == null ? null : (tl ? tl.split(":") : []); return (tp ? hp.concat(Array(Math.max(0, 8 - hp.length - tp.length)).fill("0"), tp) : hp).map(x => x.replace(/^0+(?=.)/, "")); };
+const same64 = (a, b) => { const x = v6parts(a), y = v6parts(b); return !!x && !!y && x.length === 8 && y.length === 8 && x.slice(0, 4).join(":") === y.slice(0, 4).join(":"); };
 async function pairInfo(pc) {
   const st = await pc.getStats(), byId = {}; let pair = null;
   st.forEach(r => { byId[r.id] = r; });
   st.forEach(r => { if (r.type === "transport" && r.selectedCandidatePairId && byId[r.selectedCandidatePairId]) pair = byId[r.selectedCandidatePairId]; });
   if (!pair) st.forEach(r => { if (r.type === "candidate-pair" && (r.selected || (r.nominated && r.state === "succeeded"))) pair = r; });
   if (!pair) return null;
-  const l = byId[pair.localCandidateId] || {}, rm = byId[pair.remoteCandidateId] || {};
-  const link = l.candidateType === "relay" || rm.candidateType === "relay" ? "relay" : (l.candidateType === "host" && rm.candidateType === "host") ? "local" : "net";
-  return { link, lt: l.candidateType || "?", rt: rm.candidateType || "?", proto: (l.protocol || "udp").toUpperCase(), net: l.networkType || "" };
+  const l = byId[pair.localCandidateId] || {}, rm = byId[pair.remoteCandidateId] || {}, la = l.address || l.ip || "", ra = rm.address || rm.ip || "";
+  return { lt: l.candidateType || "", rt: rm.candidateType || "", proto: (l.protocol || rm.protocol || "").toUpperCase(), net: l.networkType || "", priv: privAddr(la) || privAddr(ra), same64: same64(la, ra) };
+}
+// Same network, or across the internet? Decided from evidence only, and "unknown" when there is none (v1.1 said "internet" by default).
+//   info: the pair of addresses in use (their types, whether one is private, whether both sit in the same IPv6 network);
+//   samePub: do the two devices show the same public IPv4 address (true, false, or null when one of them has none);
+//   remHost: the addresses the other device announced for itself. A hidden ".local" name can only be found on the same network.
+function linkKind(info, samePub, remHost) {
+  if (info && (info.lt === "relay" || info.rt === "relay")) return "relay";
+  if (info && (info.priv || info.same64)) return "local";
+  if (info && info.rt === "host" && remHost && !remHost.pub4 && !remHost.pub6 && (remHost.mdns || remHost.priv)) return "local";
+  if (samePub === true) return "local";
+  if (samePub === false) return "net";
+  return "unknown";
+}
+// What the other device sends back is shown in the report: keep only values of the expected shape.
+function cleanResult(r) {
+  r = r || {}; const s = (v, re) => typeof v === "string" && re.test(v) ? v : "", n = v => Math.max(0, Math.min(99999, Math.round(+v) || 0));
+  return { ok: !!r.ok, link: ["local", "net", "relay", "unknown"].includes(r.link) ? r.link : "unknown", proto: s(r.proto, /^[A-Z]{1,4}$/), net: s(r.net, /^[a-z0-9]{1,12}$/), lt: s(r.lt, /^[a-z]{1,6}$/), rt: s(r.rt, /^[a-z]{1,6}$/),
+    sp: r.sp === true ? true : r.sp === false ? false : null, un: NETS.includes(r.un) ? r.un : "", pn: NETS.includes(r.pn) ? r.pn : "", med: n(r.med), min: n(r.min), max: n(r.max), loss: Math.min(100, n(r.loss)), n: n(r.n) };
 }
 async function startPairing(role, code) {
-  stopPairing(); verdict2(null); $("log").textContent = ""; $("log").hidden = false;
-  const C = CUR = { role, code, pc: null, pend: [], remoteSet: false, started: false, connected: false, dead: false, types: new Set(), mine: null };
+  stopPairing(); verdict2(null); $("log").textContent = ""; $("log").hidden = false; RES.pair = {};
+  const C = CUR = { role, code, pc: null, pend: [], remoteSet: false, started: false, connected: false, dead: false, types: new Set(), mine: null, loc4: new Set(), rem4: new Set(), remHost: { mdns: 0, priv: 0, pub4: 0, pub6: 0 }, peerNet: "" };
   const alive = () => CUR === C && !C.dead;
   $("btnHost").disabled = $("btnJoin").disabled = true;
   const finish = () => { $("btnHost").disabled = $("btnJoin").disabled = false; };
@@ -445,15 +479,23 @@ async function startPairing(role, code) {
   const ice = () => ({ iceServers: CFG.stun.map(s => ({ urls: s.url })) });
   const mkPc = () => {
     const pc = new RTCPeerConnection(ice()); C.pc = pc;
-    pc.onicecandidate = e => { if (e.candidate && alive()) { const c = parseCand(e.candidate.candidate); if (c) C.types.add(c.type); chan.post({ t: "cand", c: e.candidate.toJSON() }); } };
+    pc.onicecandidate = e => { if (e.candidate && alive()) { const c = parseCand(e.candidate.candidate); if (c) { C.types.add(c.type); if (c.type === "srflx" && !c.addr.includes(":")) C.loc4.add(c.addr); } chan.post({ t: "cand", c: e.candidate.toJSON() }); } };
     pc.oniceconnectionstatechange = () => { if (alive()) logLine(t("p_ice", { s: pc.iceConnectionState })); };
     return pc;
   };
-  const addCand = async c => { try { await C.pc.addIceCandidate(c); } catch (_) { } };
+  // what the other device says about its own addresses (kept as counts and a comparison, never shown)
+  const noteRemote = line => { const c = parseCand(line); if (!c) return; if (c.type === "srflx") { if (!c.addr.includes(":")) C.rem4.add(c.addr); } else if (c.type === "host") { const h = C.remHost; if (/\.local$/i.test(c.addr)) h.mdns++; else if (privAddr(c.addr)) h.priv++; else if (c.addr.includes(":")) h.pub6++; else h.pub4++; } };
+  const noteSdp = sdp => String(sdp || "").split(/\r?\n/).forEach(l => { if (l.indexOf("a=candidate:") === 0) noteRemote(l); });
+  const addCand = async c => { try { noteRemote(c && c.candidate); await C.pc.addIceCandidate(c); } catch (_) { } };
   const flush = async () => { C.remoteSet = true; for (const c of C.pend.splice(0)) await addCand(c); };
+  const samePub = () => C.loc4.size && C.rem4.size ? [...C.loc4].some(a => C.rem4.has(a)) : null;
+  const evidence = async () => { const info = await pairInfo(C.pc).catch(() => null), sp = samePub(); return { link: linkKind(info, sp, C.remHost), proto: info ? info.proto : "", net: info ? info.net : "", lt: info ? info.lt : "", rt: info ? info.rt : "", sp, un: RES.userNet, pn: C.peerNet }; };
   // each channel echoes pings; the guest measures
+  // The side that creates the channels speaks first. The side that answers waits to hear from it before sending anything:
+  // what the answering side sends in the very first instant can be lost (seen about once in ten pairings in testing).
+  const sayHi = dc => { try { dc.send(JSON.stringify({ k: "hi", net: RES.userNet })); } catch (_) { } };
   const wire = (dc, kind) => {
-    dc.onopen = () => { if (!alive() || kind !== "r") return; if (!C.connected) { C.connected = true; clearTimeout(C.timer); logLine(t("p_conn")); onConnected(); } };
+    dc.onopen = () => { if (!alive() || kind !== "r") return; if (role === "host") { sayHi(dc); setTimeout(() => { if (alive()) sayHi(dc); }, 700); } if (!C.connected) { C.connected = true; clearTimeout(C.timer); logLine(t("p_conn")); onConnected(); } };
     dc.onmessage = ev => { let m; try { m = JSON.parse(ev.data); } catch (_) { return; } onData(dc, kind, m); };
     if (kind === "r") C.dcR = dc; else C.dcU = dc;
   };
@@ -461,30 +503,36 @@ async function startPairing(role, code) {
   function onData(dc, kind, m) {
     if (m.k === "p") { try { dc.send(JSON.stringify({ k: "e", i: m.i, t: m.t })); } catch (_) { } }
     else if (m.k === "e") { if (kind === "r") got.r.set(m.i, now() - m.t); else got.u.add(m.i); }
-    else if (m.k === "res") { RES.pair.guest = m.r; logLine(t("p_res")); showPairResult(); render(); }
+    else if (m.k === "hi") { C.peerNet = NETS.includes(m.net) ? m.net : ""; C.gotHi = true; if (role === "guest" && !C.hiSent) { C.hiSent = true; sayHi(dc); } }
+    else if (m.k === "res") {
+      RES.pair.guest = cleanResult(m.r); if (!C.peerNet) C.peerNet = RES.pair.guest.un; logLine(t("p_res")); showPairResult(); render();
+      evidence().then(ev => { if (!alive()) return; RES.pair.host = Object.assign({ ok: true }, ev); showPairResult(); render(); });   // by now every address has arrived: look again
+    }
   }
   async function onConnected() {
-    C.info = await pairInfo(C.pc).catch(() => null);
     if (role === "guest") {
+      for (let i = 0; i < 20 && alive() && !C.gotHi; i++) await sleep(100);           // wait for the other side's first word (2 s at most)
+      if (!C.hiSent) { C.hiSent = true; sayHi(C.dcR); }
       logLine(t("p_test")); const N = 30;
       for (let i = 0; i < N && alive(); i++) { try { C.dcR.send(JSON.stringify({ k: "p", i, t: now() })); } catch (_) { } await sleep(120); }
       await sleep(700);
       for (let i = 0; i < N && alive(); i++) { try { C.dcU.send(JSON.stringify({ k: "p", i, t: now() })); } catch (_) { } await sleep(60); }
       await sleep(900); if (!alive()) return;
-      const rt = [...got.r.values()].map(x => Math.round(x));
-      C.mine = { ok: true, link: C.info ? C.info.link : "net", proto: C.info ? C.info.proto : "", net: C.info ? C.info.net : "", med: Math.round(median(rt)), min: rt.length ? Math.min(...rt) : 0, max: rt.length ? Math.max(...rt) : 0, loss: Math.round(100 * (N - got.u.size) / N), n: rt.length };
+      const rt = [...got.r.values()].map(x => Math.round(x)), ev = await evidence(); if (!alive()) return;
+      C.mine = Object.assign({ ok: true, med: Math.round(median(rt)), min: rt.length ? Math.min(...rt) : 0, max: rt.length ? Math.max(...rt) : 0, loss: Math.round(100 * (N - got.u.size) / N), n: rt.length }, ev);
       RES.pair.guest = C.mine; logLine(t("p_done"));
       try { C.dcR.send(JSON.stringify({ k: "res", r: C.mine })); } catch (_) { }
       showPairResult(); render(); finish();
     } else {
-      RES.pair.host = { ok: true, link: C.info ? C.info.link : "net", proto: C.info ? C.info.proto : "", net: C.info ? C.info.net : "" };
+      const ev = await evidence(); if (!alive()) return;
+      if (!RES.pair.host || RES.pair.host.ok === false || !RES.pair.guest) RES.pair.host = Object.assign({ ok: true }, ev);
       showPairResult(); render(); setTimeout(() => { if (alive()) finish(); }, 8000);
     }
   }
   function showPairResult() {
     const r = RES.pair.guest || (RES.pair.host && RES.pair.host.med != null ? RES.pair.host : null);
-    if (!r) return; const kind = r.link === "local" ? "v2_local" : r.link === "relay" ? "v2_relay" : "v2_net";
-    verdict2("ok", t(kind), t("v2_d", { med: r.med, min: r.min, max: r.max, loss: r.loss }));
+    if (!r || !r.ok) return; const own = RES.pair[role === "host" ? "host" : "guest"], link = own && own.ok && own.link !== "unknown" ? own.link : r.link;
+    verdict2(link === "unknown" ? "warn" : "ok", t("v2_" + link), t("v2_d", { med: r.med, min: r.min, max: r.max, loss: r.loss }));
   }
   chan.onmsg = async m => {
     if (!alive()) return;
@@ -495,13 +543,13 @@ async function startPairing(role, code) {
           const pc = mkPc(); wire(pc.createDataChannel("r"), "r"); wire(pc.createDataChannel("u", { ordered: false, maxRetransmits: 0 }), "u");
           await pc.setLocalDescription(await pc.createOffer()); C.offer = pc.localDescription.sdp; await chan.post({ t: "offer", sdp: C.offer }); logLine(t("p_offer"));
         } else if (!C.connected && C.offer) await chan.post({ t: "offer", sdp: C.offer });      // the guest still asks: say it again
-      } else if (m.t === "answer" && C.pc && !C.remoteSet) { await C.pc.setRemoteDescription({ type: "answer", sdp: m.sdp }); await flush(); }
+      } else if (m.t === "answer" && C.pc && !C.remoteSet) { noteSdp(m.sdp); await C.pc.setRemoteDescription({ type: "answer", sdp: m.sdp }); await flush(); }
       else if (m.t === "cand") { if (C.remoteSet) await addCand(m.c); else C.pend.push(m.c); }
     } else {
       if (m.t === "offer" && !C.pc) {
         logLine(t("p_hello", { via: m.via })); clearInterval(C.hello);
         const pc = mkPc(); pc.ondatachannel = e => wire(e.channel, e.channel.label === "u" ? "u" : "r");
-        await pc.setRemoteDescription({ type: "offer", sdp: m.sdp }); await flush();
+        noteSdp(m.sdp); await pc.setRemoteDescription({ type: "offer", sdp: m.sdp }); await flush();
         await pc.setLocalDescription(await pc.createAnswer()); await chan.post({ t: "answer", sdp: pc.localDescription.sdp }); logLine(t("p_answer"));
       } else if (m.t === "cand") { if (C.remoteSet) await addCand(m.c); else C.pend.push(m.c); }
     }
@@ -510,7 +558,7 @@ async function startPairing(role, code) {
     if (!alive() || C.connected) return;
     const heard = role === "host" ? C.started : !!C.pc;
     if (!heard) { logLine(t("p_nopeer", { s: TIMEOUT_PAIR / 1000 })); verdict2("bad", t("v2_fail"), t("p_nopeer", { s: TIMEOUT_PAIR / 1000 })); }
-    else { logLine(t("p_fail", { s: TIMEOUT_PAIR / 1000 })); logLine(t("p_cand", { c: [...C.types].join(", ") || "—" })); RES.pair[role === "host" ? "host" : "guest"] = { ok: false }; verdict2("bad", t("v2_fail"), t("v2_fail_d")); render(); }
+    else { logLine(t("p_fail", { s: TIMEOUT_PAIR / 1000 })); logLine(t("p_cand", { c: [...C.types].join(", ") || "—" })); RES.pair[role === "host" ? "host" : "guest"] = { ok: false, un: RES.userNet, pn: C.peerNet }; verdict2("bad", t("v2_fail"), t("v2_fail_d")); render(); }
     stopPairing(); finish();
   };
   C.timer = setTimeout(fail, TIMEOUT_PAIR);
@@ -525,17 +573,20 @@ function buildReport() {
   L.push(t("rp_head") + " (v" + VER + ") · " + z(d.getDate()) + "/" + z(d.getMonth() + 1) + "/" + d.getFullYear() + " " + z(d.getHours()) + ":" + z(d.getMinutes()));
   if (RES.env) L.push(t("rp_dev") + " : " + RES.env.ua + (RES.env.miss.length ? " · " + t("env_bad", { list: RES.env.miss.map(m => m === "*enc" ? t("env_enc") : m).join(", ") }) : ""));
   L.push(t("rp_conn") + " : " + (RES.conn || t("net_none")));
+  L.push(t("rp_unet") + " : " + t("un_" + (RES.userNet || "none")));
   const rs = RES.relays.map(r => r.name + (r.kind === "ntfy" ? " (" + r.port + ")" : " (" + r.port + ")") + " " + (r.state === "ok" ? "OK " + r.ms + " ms" : r.state === "run" ? "…" : t(r.state)));
   L.push(t("rp_relays") + " : " + (rs.join(" · ") || t("rp_none")));
   const ss = RES.stun.map(s => s.name + " " + (s.state === "ok" ? "OK " + s.ms + " ms" : s.state === "run" ? "…" : t("stun_none").split(" (")[0]));
   L.push(t("rp_stun") + " : " + (ss.join(" · ") || t("rp_none")));
-  L.push(t("rp_nat") + " : " + (RES.nat ? t("nat_" + RES.nat) + (RES.natV6 ? t("nat_v6") : "") : "…"));
+  L.push(t("rp_nat") + " : " + (RES.nat ? t("nat_" + RES.nat, { n: RES.natN }) + (RES.natV6 ? t("nat_v6") : "") : "…"));
   const c = RES.cand; L.push(t("rp_cand") + " : " + (c ? (c.n ? (c.mdns ? t("cand_mdns") : t("cand_ip")) + (c.v4 ? t("cand_v4") : "") + (c.v6 ? t("cand_v6") : "") : t("cand_none")) : "…"));
   const P = [["host", "role_host"], ["guest", "role_guest"]].map(([k, rk]) => {
     const r = RES.pair[k]; if (!r) return null;
-    if (!r.ok) return t("rp_failline", { role: t(rk) });
-    if (r.med == null) return t("rp_hostline", { role: t(rk), link: t("link_" + r.link), proto: r.proto, net: r.net && r.net !== "unknown" ? " · " + r.net : "" });
-    return t("rp_pairline", { role: t(rk), link: t("link_" + r.link), med: r.med, min: r.min, max: r.max, loss: r.loss, proto: r.proto, net: r.net && r.net !== "unknown" ? " · " + r.net : "" });
+    const role = t(rk) + " (" + t("un_" + (r.un || "none")) + ")", proto = (r.proto ? ", " + r.proto : "") + (r.net && r.net !== "unknown" ? " · " + r.net : "");
+    const ev = t("rp_ev", { lt: r.lt || "?", rt: r.rt || "?", sp: t(r.sp === true ? "sp_yes" : r.sp === false ? "sp_no" : "sp_unk"), pn: t("un_" + (r.pn || "none")) });
+    if (!r.ok) return t("rp_failline", { role });
+    if (r.med == null) return t("rp_hostline", { role, link: t("link_" + (r.link || "unknown")), proto, ev });
+    return t("rp_pairline", { role, link: t("link_" + (r.link || "unknown")), med: r.med, min: r.min, max: r.max, loss: r.loss, proto, ev });
   }).filter(Boolean);
   L.push(t("rp_pair") + " : " + (P.length ? "" : t("rp_none"))); P.forEach(x => L.push("  " + x));
   return L.join("\n");
@@ -548,14 +599,16 @@ function setLang(l) { lang = l; render(); }
 document.addEventListener("DOMContentLoaded", () => {
   $("lgFR").onclick = () => setLang("fr"); $("lgEN").onclick = () => setLang("en");
   $("btnRerun").onclick = () => runTests();
-  $("btnHost").onclick = async () => { const code = newCode(); $("hostBox").hidden = false; $("codeShow").textContent = fmtCode(code); await startPairing("host", code); };
-  $("btnJoin").onclick = async () => { const code = normCode($("code").value); if (!validCode(code)) { verdict2("bad", t("p_bad")); return; } $("hostBox").hidden = true; await startPairing("guest", code); };
+  const needNet = () => { if (RES.userNet) return false; verdict2("warn", t("p_pick")); $("netSeg").classList.add("need"); try { $("netSeg").scrollIntoView({ block: "center" }); } catch (_) { } return true; };
+  NETBTN.forEach(([id, v]) => { $(id).onclick = () => { RES.userNet = v; $("netSeg").classList.remove("need"); if ($("v2").textContent === t("p_pick")) verdict2(null); render(); }; });
+  $("btnHost").onclick = async () => { if (needNet()) return; const code = newCode(); $("hostBox").hidden = false; $("codeShow").textContent = fmtCode(code); await startPairing("host", code); };
+  $("btnJoin").onclick = async () => { if (needNet()) return; const code = normCode($("code").value); if (!validCode(code)) { verdict2("bad", t("p_bad")); return; } $("hostBox").hidden = true; await startPairing("guest", code); };
   $("code").addEventListener("input", e => { const v = normCode(e.target.value).slice(0, 8); e.target.value = v.length > 4 ? v.slice(0, 4) + "-" + v.slice(4) : v; });
   $("code").addEventListener("keydown", e => { if (e.key === "Enter") $("btnJoin").click(); });
   $("btnCopy").onclick = async () => { const ta = $("rep"); ta.value = buildReport(); try { await navigator.clipboard.writeText(ta.value); } catch (_) { ta.select(); try { document.execCommand("copy"); } catch (__) { } } $("copied").textContent = t("copied"); setTimeout(() => $("copied").textContent = "", 2500); };
   render(); runTests();
 });
-window.__vnt = { RES, render, buildReport, startPairing, stopPairing, runTests };
+window.__vnt = { RES, render, buildReport, startPairing, stopPairing, runTests, linkKind, privAddr, same64, cleanResult };
 </script>
 </body>
 </html>
