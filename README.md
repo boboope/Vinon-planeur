@@ -1,36 +1,60 @@
-# Vinon-planeur
+# Le Planeur de poche — copie du club
 
-Page de test réseau pour « Le Planeur de poche », le petit jeu de planeur de l'Association Aéronautique Verdon Alpilles (AAVA, Vinon-sur-Verdon).
+« Le Planeur de poche » est le petit jeu de planeur proposé à l'Association Aéronautique Verdon Alpilles (AAVA, Vinon-sur-Verdon). Ce dépôt héberge la copie du jeu qui permet les **séances avec un instructeur**.
 
-**La page :** https://boboope.github.io/Vinon-planeur/
+| Page | Adresse |
+|---|---|
+| Le jeu | https://boboope.github.io/Vinon-planeur/jeu/ |
+| Le poste instructeur | https://boboope.github.io/Vinon-planeur/jeu/instructeur.html |
+| La page de test réseau | https://boboope.github.io/Vinon-planeur/ |
 
-## À quoi elle sert
+La version du jeu est écrite en bas de l'écran d'accueil (« v5.4 »), celle du poste instructeur sous son titre.
 
-Elle répond à une question : sur ce réseau, deux appareils (téléphone, tablette, ordinateur) peuvent-ils se parler directement ? C'est ce qu'il faut savoir avant de construire un mode où un instructeur agit en direct sur le vol d'un élève.
+## Une séance, en trois gestes
 
-## Comment s'en servir
+1. **L'instructeur** ouvre le poste instructeur et touche « Ouvrir une séance ». Un code de 8 caractères s'affiche, avec un lien direct.
+2. **Chaque élève** (trois au plus) ouvre le jeu sur son propre appareil, saisit le code dans « Séance avec un instructeur » sur l'écran d'accueil (ou ouvre le lien direct), puis décolle.
+3. **L'instructeur** voit chaque planeur sur la carte, avec son altitude, sa hauteur au-dessus du sol, sa vitesse, son vario, son inclinaison et son cap. Il peut :
+   - imposer le vent (direction, vitesse) et l'agitation de l'air, pour tous ;
+   - envoyer à un planeur, ou à tous, une rafale, une aile qui s'enfonce ou une descendance.
 
-1. Ouvrir la page sur deux appareils, sur place. Si elle annonce une version plus récente, la charger d'abord : les deux appareils doivent utiliser la même version (elle figure sur la première ligne du rapport).
-2. Sur chaque appareil, indiquer comment il est connecté : Wi-Fi, 4G / 5G ou câble.
-3. Sur le premier, toucher « Créer un code ». Sur le second, saisir ce code puis toucher « Connecter ».
-4. Attendre le résultat (une dizaine de secondes), puis toucher « Copier le rapport » sur chaque appareil et coller le rapport dans un message.
+Les vols d'une séance ne sont pas classés : ni médaille, ni record, ni défi.
 
-À faire deux fois :
+Rien à installer, aucun compte, aucun réglage sur le réseau du club. Il faut seulement que chaque appareil ait accès à Internet (Wi-Fi ou 4G / 5G).
 
-- un téléphone en 4G et l'autre appareil sur le Wi-Fi du lieu. Sur le téléphone, couper le Wi-Fi. Dans ce cas la page laisse de côté les adresses locales : seul un lien à travers Internet peut réussir. Sans cela, un téléphone et un ordinateur du même propriétaire se trouvent un chemin privé (partage de connexion, câble, Bluetooth) et l'essai ne prouve rien ;
-- puis les deux appareils sur le même Wi-Fi.
+## Si quelque chose ne marche pas
 
-Si l'essai en 4G échoue, c'est un vrai résultat : entre ces deux réseaux, un lien direct n'est pas possible.
+- **L'élève reste sur « connexion… »** : son appareil n'atteint aucun relais. Vérifier sa connexion Internet, puis ouvrir la page de test réseau sur ce même appareil.
+- **L'élève reste sur « en attente de l'instructeur »** : le code est différent de celui du poste, ou le poste instructeur est fermé.
+- **Le poste instructeur a été fermé par erreur** : le rouvrir et toucher « Reprendre la séance » : le code est le même, les planeurs reviennent.
+- **« Séance complète »** : trois planeurs y sont déjà. Un planeur silencieux depuis une minute et demie libère sa place.
 
-Le rapport dit si le lien direct reste sur le même réseau ou s'il traverse Internet, et sur quels indices. Quand la page ne peut pas le savoir, elle l'écrit.
+## Ce qui circule, et par où
 
-## Ce que fait la page
+- Pendant une séance, le jeu envoie une fois par seconde la position et les paramètres de vol du planeur ; le poste envoie la météo et les événements. Aucun nom, aucun compte, aucune adresse.
+- Ces messages passent par des relais publics gratuits (serveurs MQTT : shiftr.io, TBMQ, EMQX, HiveMQ, Mosquitto), tous à la fois : si l'un tombe, les autres suffisent. Ils voient l'adresse IP des appareils, comme n'importe quel site.
+- Les messages sont chiffrés dans le navigateur avec une clé tirée du code de séance : les relais ne transportent que du bruit.
+- Hors séance, le jeu n'envoie rien.
 
-- Un seul fichier, `index.html`. Aucun compte, aucun serveur du club, rien n'est enregistré.
-- Elle contacte des services publics gratuits (ntfy.sh, des serveurs MQTT publics, des serveurs STUN). Ils voient l'adresse IP de l'appareil, comme n'importe quel site.
-- Les messages échangés pour s'appairer sont chiffrés dans le navigateur avec une clé tirée du code.
-- Le rapport ne contient ni adresse IP ni nom.
+## Limites connues
+
+- **Le code est le seul secret.** Quiconque le connaît peut rejoindre la séance, ou envoyer des commandes. Le donner aux élèves seulement, et ouvrir une nouvelle séance (un nouveau code) à chaque fois.
+- Les relais sont des services gratuits, sans garantie. Si aucun ne répond, le jeu continue de fonctionner seul, sans instructeur.
+- La liaison a été essayée de bout en bout avec des relais de test, sur un ordinateur. Les vrais relais sont ceux que la page de test réseau a atteints au club, à domicile et en 4G / 5G ; la première séance réelle reste à faire.
+- Trois élèves au plus par séance.
+
+## Ce que contient ce dépôt
+
+- `jeu/index.html` : le jeu, en un seul fichier.
+- `jeu/instructeur.html` : le poste instructeur, en un seul fichier.
+- `index.html` : la page de test réseau.
+
+Le jeu est aussi publié sur claude.ai (sans les séances : cette copie-là ne peut pas ouvrir de connexion).
+
+## Droits
+
+Tous droits réservés pour l'instant : la licence sera décidée par le club. Voir le fichier `LICENSE`.
 
 ---
 
-*English: a one-file network test page for the AAVA gliding club's small glider game. Open it on two devices at the venue, create a code on one, type it on the other, then copy the report. No account, no server, nothing stored.*
+*English: the club's own copy of "Le Planeur de poche", the AAVA gliding club's small glider game. It adds sessions with an instructor: the instructor opens the desk page and gets a code; up to three students enter it in the game on their own devices; the instructor then sees each glider (height, speed, climb, position) and sets the wind and the roughness of the air, or sends a gust, a wing drop or sinking air. No account, nothing to install. Messages are encrypted in the browser with a key derived from the session code and travel through free public MQTT relays. All rights reserved for now; the club will decide on a licence.*

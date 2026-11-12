@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Le Planeur de poche · Poste instructeur</title>
+<style>
+:root{--ink:#1D2B4A;--ink2:#2A3A5E;--sun:#E8A33D;--mist:#F3F6FA;--line:#D8DFEA;--muted:#5E6B88;--paper:#fff;--ok:#1F6B4A;--bad:#A8442F;--p1:#D98A1C;--p2:#2E8B83;--p3:#7A68B0;--ui:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--mist);color:var(--ink);font-family:var(--ui);font-size:15px;line-height:1.45;padding:env(safe-area-inset-top,0) env(safe-area-inset-right,0) env(safe-area-inset-bottom,0) env(safe-area-inset-left,0)}
+button{font:inherit;cursor:pointer}
+header{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 18px;background:var(--ink);color:#fff}
+header h1{font-size:17px;margin:0;font-weight:800;letter-spacing:.01em}
+header .sub{font-size:13px;opacity:.75}
+header .sp{flex:1}
+.seg{display:inline-flex;background:rgba(255,255,255,.14);border-radius:999px;padding:3px}
+.seg button{border:0;background:transparent;border-radius:999px;padding:6px 12px;font-weight:700;color:#fff;opacity:.7;font-size:13px}
+.seg button[aria-pressed="true"]{background:#fff;color:var(--ink);opacity:1}
+main{max-width:1180px;margin:0 auto;padding:16px}
+.card{background:var(--paper);border-radius:18px;padding:16px 18px;box-shadow:0 1px 2px rgba(29,43,74,.06),0 6px 20px rgba(29,43,74,.05)}
+.card h2{font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+.btn{border:0;border-radius:999px;padding:11px 18px;font-weight:800;background:var(--mist);color:var(--ink)}
+.btn.primary{background:var(--sun);color:#2A1C02}
+.btn.sm{padding:8px 13px;font-size:13.5px}
+.btn:disabled{opacity:.45;cursor:default}
+.btn:focus-visible,.seg button:focus-visible,input:focus-visible{outline:2px solid var(--sun);outline-offset:2px}
+.btn.flash{background:var(--ink);color:#fff}
+#intro p{max-width:62ch}
+#intro ol{margin:10px 0 16px;padding-left:20px;max-width:66ch}
+#intro li{margin:4px 0}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.sess{display:grid;grid-template-columns:auto 1fr auto;gap:8px 20px;align-items:center}
+.code{font:800 34px/1 var(--ui);letter-spacing:.1em;font-variant-numeric:tabular-nums}
+.sess .k{font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.link{font-size:13.5px;word-break:break-all;color:var(--ink2);background:var(--mist);border-radius:10px;padding:8px 10px}
+.relays{font-size:13px;color:var(--muted)}
+.relays b{color:var(--ok)}.relays b.bad{color:var(--bad)}
+.grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:16px;margin-top:16px;align-items:start}
+@media (max-width:860px){.grid{grid-template-columns:1fr}.sess{grid-template-columns:1fr}}
+canvas{display:block;width:100%;border-radius:12px;background:#E9EFE4}
+.gl{border:1.5px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:10px}
+.gl.empty{color:var(--muted);border-style:dashed;font-size:14px}
+.gl .top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.gl .name{font-weight:800;font-size:16px}
+.gl .dot{width:12px;height:12px;border-radius:50%}
+.chip{font-size:12px;font-weight:800;border-radius:999px;padding:3px 9px;background:var(--mist);color:var(--muted)}
+.chip.fly{background:#E2F3EA;color:var(--ok)}.chip.warn{background:#FBE5DF;color:var(--bad)}.chip.lost{background:#FFF3DC;color:#7A5208}
+.nums{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px 10px;margin:10px 0}
+.nums .v{font:800 21px/1.1 var(--ui);font-variant-numeric:tabular-nums;white-space:nowrap}
+@media (max-width:480px){.nums .v{font-size:16.5px}.code{font-size:30px}}
+.nums .k{font-size:11.5px;color:var(--muted);font-weight:700}
+.nums .up{color:var(--ok)}.nums .dn{color:var(--bad)}
+.meta{font-size:12.5px;color:var(--muted)}
+.ev{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.wx label{display:block;font-weight:700;font-size:13.5px;margin-top:12px}
+.wx input[type=range]{width:100%;accent-color:var(--ink)}
+.wx .val{float:right;font-variant-numeric:tabular-nums;color:var(--ink2)}
+.wx .mode{display:flex;gap:8px;flex-wrap:wrap}
+.wx .mode button[aria-pressed="true"]{background:var(--ink);color:#fff}
+.wx fieldset{border:0;padding:0;margin:0}
+.wx fieldset:disabled{opacity:.45}
+.note{font-size:12.5px;color:var(--muted);margin-top:12px}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<header>
+  <div><h1>Le Planeur de poche</h1><div class="sub" id="hSub"></div></div>
+  <div class="sp"></div>
+  <div class="seg" role="group" aria-label="Langue"><button id="lgFR" aria-pressed="true">FR</button><button id="lgEN" aria-pressed="false">EN</button></div>
+</header>
+<main>
+  <section class="card" id="intro">
+    <h2 id="inK"></h2>
+    <p id="inP"></p>
+    <ol><li id="in1"></li><li id="in2"></li><li id="in3"></li></ol>
+    <div class="row"><button class="btn primary" id="btnOpen"></button><button class="btn" id="btnResume" hidden></button></div>
+    <p class="note" id="inNote"></p>
+  </section>
+  <div id="live" hidden>
+    <section class="card">
+      <div class="sess">
+        <div><div class="k" id="seK"></div><div class="code" id="seCode"></div></div>
+        <div><div class="k" id="seL"></div><div class="link" id="seLink"></div></div>
+        <div class="row"><button class="btn sm" id="btnCopy"></button><button class="btn sm" id="btnClose"></button></div>
+      </div>
+      <div class="relays" id="seRel" role="status" style="margin-top:10px"></div>
+    </section>
+    <div class="grid">
+      <section class="card">
+        <h2 id="mapK"></h2>
+        <canvas id="map" width="560" height="460" role="img"></canvas>
+        <div class="wx">
+          <h2 id="wxK" style="margin-top:18px"></h2>
+          <div class="mode"><button class="btn sm" id="wxDay" aria-pressed="true"></button><button class="btn sm" id="wxSet" aria-pressed="false"></button></div>
+          <fieldset id="wxF" disabled>
+            <label for="wxDir"><span id="wxDirK"></span><span class="val" id="wxDirV"></span></label><input type="range" id="wxDir" min="0" max="350" step="10" value="180">
+            <label for="wxSpd"><span id="wxSpdK"></span><span class="val" id="wxSpdV"></span></label><input type="range" id="wxSpd" min="0" max="60" step="5" value="15">
+            <label for="wxAir"><span id="wxAirK"></span><span class="val" id="wxAirV"></span></label><input type="range" id="wxAir" min="0" max="2" step="0.1" value="1">
+          </fieldset>
+          <p class="note" id="wxNote"></p>
+        </div>
+      </section>
+      <section class="card">
+        <h2 id="glK"></h2>
+        <div id="gliders"></div>
+        <div class="ev"><button class="btn sm" id="allGust"></button><button class="btn sm" id="allSink"></button></div>
+        <p class="note" id="evNote"></p>
+      </section>
+    </div>
+  </div>
+</main>
+<script>
+/* ---------------- Live link ----------------
+   One encrypted channel shared by an instructor and up to three students. It is carried by public MQTT relays over secure
+   WebSockets, the ones the club's network test page checked on the club Wi-Fi, at home and on mobile data. Every relay that
+   answers is used at once: a message goes through all of them and the first copy to arrive is kept. A relay that drops is
+   dialled again. The session code is the only secret: the key and the topic are derived from it, so the relays carry noise.
+   Nothing here needs an account, a server of our own or a setting on the club's network. */
+const LiveLink = (() => {
+  const RELAYS = window.__LIVE_RELAYS__ || [                  // user and pass are the public ones these services publish for anyone
+    { name: "shiftr.io", url: "wss://public.cloud.shiftr.io/", user: "public", pass: "public" },
+    { name: "TBMQ", url: "wss://demo.tbmq.io/mqtt", user: "demo" },
+    { name: "EMQX", url: "wss://broker.emqx.io:8084/mqtt" },
+    { name: "HiveMQ", url: "wss://broker.hivemq.com:8884/mqtt" },
+    { name: "Mosquitto", url: "wss://test.mosquitto.org:8081/" }
+  ];
+  const enc = new TextEncoder(), dec = new TextDecoder();
+  const hex = u => Array.from(u, b => b.toString(16).padStart(2, "0")).join("");
+  const rnd = n => hex(crypto.getRandomValues(new Uint8Array(n)));
+  const b64 = u => { let s = ""; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(s); };
+  const unb64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+  const cat = (...a) => { let n = 0; a.forEach(x => n += x.length); const o = new Uint8Array(n); let p = 0; a.forEach(x => { o.set(x, p); p += x.length; }); return o; };
+  // session code: 8 symbols, no 0 O 1 I
+  const ALPH = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const newCode = () => Array.from(crypto.getRandomValues(new Uint8Array(8)), b => ALPH[b % 32]).join("");
+  const fmtCode = c => c.slice(0, 4) + "-" + c.slice(4);
+  const normCode = s => String(s || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const validCode = c => c.length === 8 && [...c].every(ch => ALPH.includes(ch));
+  const keyFor = async code => { const base = await crypto.subtle.importKey("raw", enc.encode(code), "PBKDF2", false, ["deriveKey"]); return crypto.subtle.deriveKey({ name: "PBKDF2", salt: enc.encode("aava-live-1"), iterations: 100000, hash: "SHA-256" }, base, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]); };
+  const topicFor = async code => "aava-live/" + hex(new Uint8Array(await crypto.subtle.digest("SHA-256", enc.encode("live-topic:" + code))).slice(0, 12));
+  const seal = async (key, obj) => { const iv = crypto.getRandomValues(new Uint8Array(12)); return b64(cat(iv, new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, enc.encode(JSON.stringify(obj)))))); };
+  const unseal = async (key, text) => { const u = unb64(text); return JSON.parse(dec.decode(await crypto.subtle.decrypt({ name: "AES-GCM", iv: u.slice(0, 12) }, key, u.slice(12)))); };
+  // a minimal MQTT 3.1.1 client: connect, subscribe to one topic, publish at QoS 0, keep alive
+  const mStr = s => { const b = enc.encode(s), o = new Uint8Array(2 + b.length); o[0] = b.length >> 8; o[1] = b.length & 255; o.set(b, 2); return o; };
+  const mLen = n => { const o = []; do { let d = n % 128; n = Math.floor(n / 128); if (n > 0) d |= 128; o.push(d); } while (n > 0); return new Uint8Array(o); };
+  const mPkt = (type, body) => cat(new Uint8Array([type]), mLen(body.length), body);
+  function mqtt(c, topic, onText, onDown) {
+    return new Promise((resolve, reject) => {
+      let ws, buf = new Uint8Array(0), ping = 0, state = "dial", h = 0;
+      try { ws = new WebSocket(c.url, "mqtt"); } catch (e) { return reject(e); }
+      ws.binaryType = "arraybuffer";
+      const end = () => { clearInterval(ping); clearTimeout(h); const was = state; state = "closed"; try { ws.close(); } catch (_) { } if (was === "open") onDown(); else if (was !== "closed") reject(new Error("no relay")); };
+      h = setTimeout(end, 9000);
+      ws.onerror = end; ws.onclose = end;
+      ws.onopen = () => ws.send(mPkt(0x10, cat(mStr("MQTT"), new Uint8Array([4, 2 | (c.user ? 0x80 : 0) | (c.user && c.pass ? 0x40 : 0), 0, 30]), mStr("aava-" + rnd(6)), c.user ? mStr(c.user) : new Uint8Array(0), c.user && c.pass ? mStr(c.pass) : new Uint8Array(0))));
+      ws.onmessage = ev => {
+        buf = cat(buf, new Uint8Array(ev.data));
+        for (;;) {
+          if (buf.length < 2) return;
+          let len = 0, mul = 1, i = 1, b;
+          do { if (i >= buf.length) return; b = buf[i++]; len += (b & 127) * mul; mul *= 128; } while ((b & 128) && i < 5);
+          if (buf.length < i + len) return;
+          const first = buf[0], type = first >> 4, body = buf.slice(i, i + len); buf = buf.slice(i + len);
+          if (type === 2) { if (body[1] === 0 && state === "dial") { state = "sub"; ws.send(mPkt(0x82, cat(new Uint8Array([0, 1]), mStr(topic), new Uint8Array([0])))); } else end(); }
+          else if (type === 9 && state === "sub") {
+            state = "open"; clearTimeout(h); ping = setInterval(() => { try { ws.send(new Uint8Array([0xC0, 0])); } catch (_) { } }, 20000);
+            resolve({ send(text) { if (ws.readyState === 1) ws.send(mPkt(0x30, cat(mStr(topic), enc.encode(text)))); }, close() { state = "closed"; clearInterval(ping); try { ws.close(); } catch (_) { } } });
+          } else if (type === 3) { const qos = (first >> 1) & 3, tl = (body[0] << 8) | body[1], off = 2 + tl + (qos ? 2 : 0); if (dec.decode(body.subarray(2, 2 + tl)) === topic) { try { onText(dec.decode(body.subarray(off))); } catch (_) { } } }
+        }
+      };
+    });
+  }
+  class Link {
+    constructor(code, id, role) { this.code = code; this.id = id; this.role = role; this.relays = RELAYS.map(c => ({ c, name: c.name, state: "wait", h: null, n: 0, tm: 0 })); this.seen = new Set(); this.onmsg = () => { }; this.onstate = () => { }; this.closed = false; }
+    async open() { this.key = await keyFor(this.code); this.topic = await topicFor(this.code); if (!this.closed) this.relays.forEach(r => this._dial(r)); }
+    up() { return this.relays.filter(r => r.state === "ok").length; }
+    _tell() { try { this.onstate(this.up(), this.relays); } catch (_) { } }
+    _dial(r) {
+      if (this.closed) return; r.state = "dial"; this._tell();
+      mqtt(r.c, this.topic, txt => this._in(txt), () => this._lost(r)).then(h => { if (this.closed) return h.close(); r.h = h; r.state = "ok"; r.n = 0; this._tell(); }, () => this._lost(r));
+    }
+    _lost(r) { if (r.h) { try { r.h.close(); } catch (_) { } r.h = null; } if (this.closed) return; r.state = "down"; this._tell(); clearTimeout(r.tm); r.tm = setTimeout(() => this._dial(r), Math.min(30000, 2000 * 2 ** r.n++)); }
+    async post(obj) {                                         // returns how many relays took the message
+      if (this.closed || !this.key) return 0;
+      obj.n = rnd(6); obj.f = this.id; obj.r = this.role; const txt = await seal(this.key, obj); let k = 0;
+      this.relays.forEach(r => { if (r.h) { try { r.h.send(txt); k++; } catch (_) { this._lost(r); } } });
+      return k;
+    }
+    async _in(txt) {
+      let m; try { m = await unseal(this.key, txt); } catch (_) { return; }
+      if (!m || m.f === this.id || this.seen.has(m.n)) return;
+      this.seen.add(m.n); if (this.seen.size > 6000) this.seen = new Set(Array.from(this.seen).slice(-2000));
+      try { this.onmsg(m); } catch (_) { }
+    }
+    close() { this.closed = true; this.relays.forEach(r => { clearTimeout(r.tm); if (r.h) { try { r.h.close(); } catch (_) { } r.h = null; } r.state = "wait"; }); }
+  }
+  return { Link, RELAYS, newCode, fmtCode, normCode, validCode, rnd };
+})();
+
+/* ---------------- Instructor's desk ----------------
+   Opens a session (a code), listens to up to three gliders, shows where they are and how they fly, and sends them the
+   weather and a few events. Everything goes through LiveLink (see above): encrypted, through public relays, no account.
+   The whole state is sent again every two seconds, so a glider that joins late or loses the line for a moment catches up. */
+const VER = "1.0", $ = id => document.getElementById(id);
+const TX = {
+  fr: {
+    sub: "Poste instructeur", inK: "Séance avec vos élèves",
+    inP: "Depuis cette page, vous suivez jusqu'à trois planeurs en vol dans le jeu et vous réglez leur météo en direct. Chaque élève joue sur son propre appareil.",
+    in1: "Ouvrez une séance : un code de 8 caractères s'affiche.", in2: "Chaque élève ouvre le jeu, saisit ce code dans « Séance avec un instructeur », puis décolle.", in3: "Réglez le vent et l'agitation de l'air, envoyez une rafale, une aile qui s'enfonce ou une descendance.",
+    open: "Ouvrir une séance", resume: "Reprendre la séance {code}", inNote: "Rien à installer, aucun compte. Les vols d'une séance ne sont pas classés. Gardez cette page ouverte pendant la séance.",
+    seK: "Code de séance", seL: "Lien direct pour les élèves", copy: "Copier le lien", copied: "Lien copié", close: "Fermer la séance", closeQ: "Fermer la séance ? Les élèves gardent leur vol, sans instructeur.",
+    rel: "Liaison : {n} relais sur {m}", relBad: "Liaison coupée : nouvelle tentative en cours. Vérifiez la connexion internet de cet appareil.", relDial: "Liaison : connexion aux relais…",
+    mapK: "Carte (nord en haut, Vinon au centre)", wxK: "Météo des élèves", wxDay: "Météo du jeu", wxSet: "Météo imposée", wxDir: "Le vent vient du", wxSpd: "Vitesse du vent", wxAir: "Agitation de l'air",
+    wxNote: "« Météo du jeu » : chacun vole dans l'air de son niveau. « Météo imposée » : la même pour tous, elle change en quelques secondes chez les élèves. Agitation : 0,4 correspond au niveau Découverte, 1 au niveau Pilote, 1,5 au niveau Instruction.",
+    air: ["air calme", "peu agité", "agité", "très agité"], glK: "Planeurs", empty: "Planeur {n} : place libre", wait: "En attente des élèves. Donnez-leur le code {code}.",
+    name: "Planeur {n}", alt: "altitude", agl: "hauteur sol", spd: "km/h", vz: "vario m/s", bank: "inclinaison", hdg: "cap",
+    st_start: "à l'accueil", st_tow: "en remorqué", st_flying: "en vol", st_paused: "en pause", st_ended: "vol terminé", lost: "sans nouvelles depuis {s} s",
+    rg_stall: "décrochage", rg_inc: "aile qui s'enfonce", rg_spin: "vrille", lv: ["", "Découverte", "Pilote", "Instruction"], race: "circuit, balise {k}/{n}", raceHome: "circuit, retour à Vinon", free: "vol libre",
+    gust: "Rafale", dropL: "Aile gauche", dropR: "Aile droite", sink: "Descendance", allGust: "Rafale pour tous", allSink: "Descendance pour tous", sent: "Envoyé",
+    evNote: "Rafale : 30 km/h de vent en plus pendant deux secondes. Aile : une aile s'enfonce, l'élève doit contrer au manche. Descendance : dix secondes d'air qui descend (3,5 m/s). Un événement n'agit que sur un planeur en vol.",
+    dirs: ["nord", "nord-est", "est", "sud-est", "sud", "sud-ouest", "ouest", "nord-ouest"], kmh: "km/h", wind: "vent {d}, {s} km/h", none: "pas de planeur en vol"
+  },
+  en: {
+    sub: "Instructor's desk", inK: "A session with your students",
+    inP: "From this page you follow up to three gliders flying in the game and set their weather live. Each student plays on their own device.",
+    in1: "Open a session: an 8-character code appears.", in2: "Each student opens the game, enters the code under \"Session with an instructor\", then takes off.", in3: "Set the wind and the roughness of the air, send a gust, a wing drop or sinking air.",
+    open: "Open a session", resume: "Resume session {code}", inNote: "Nothing to install, no account. Flights flown in a session are not ranked. Keep this page open during the session.",
+    seK: "Session code", seL: "Direct link for students", copy: "Copy the link", copied: "Link copied", close: "Close the session", closeQ: "Close the session? Students keep their flight, without an instructor.",
+    rel: "Link: {n} relays out of {m}", relBad: "Link down: trying again. Check this device's internet connection.", relDial: "Link: connecting to the relays…",
+    mapK: "Map (north up, Vinon at the centre)", wxK: "Students' weather", wxDay: "The game's weather", wxSet: "Imposed weather", wxDir: "Wind from the", wxSpd: "Wind speed", wxAir: "Roughness of the air",
+    wxNote: "\"The game's weather\": each one flies in the air of their level. \"Imposed weather\": the same for all; it changes within a few seconds on the students' side. Roughness: 0.4 is the Discovery level, 1 the Pilot level, 1.5 the Instruction level.",
+    air: ["calm air", "light", "rough", "very rough"], glK: "Gliders", empty: "Glider {n}: free", wait: "Waiting for students. Give them the code {code}.",
+    name: "Glider {n}", alt: "altitude", agl: "above ground", spd: "km/h", vz: "vario m/s", bank: "bank", hdg: "heading",
+    st_start: "on the start screen", st_tow: "on tow", st_flying: "flying", st_paused: "paused", st_ended: "flight over", lost: "no news for {s} s",
+    rg_stall: "stall", rg_inc: "wing dropping", rg_spin: "spin", lv: ["", "Discovery", "Pilot", "Instruction"], race: "task, turnpoint {k}/{n}", raceHome: "task, back to Vinon", free: "free flight",
+    gust: "Gust", dropL: "Left wing", dropR: "Right wing", sink: "Sinking air", allGust: "Gust for all", allSink: "Sinking air for all", sent: "Sent",
+    evNote: "Gust: 30 km/h more wind for two seconds. Wing: one wing drops, the student must answer with the stick. Sinking air: ten seconds of air going down (3.5 m/s). An event only acts on a glider that is flying.",
+    dirs: ["north", "north-east", "east", "south-east", "south", "south-west", "west", "north-west"], kmh: "km/h", wind: "wind from the {d}, {s} km/h", none: "no glider flying"
+  }
+};
+let lang = (navigator.language || "fr").toLowerCase().startsWith("fr") ? "fr" : "en";
+const t = (k, p) => { let s = TX[lang][k] != null ? TX[lang][k] : k; if (p) for (const q in p) s = s.split("{" + q + "}").join(p[q]); return s; };
+const COL = ["", "#D98A1C", "#2E8B83", "#7A68B0"], MAXG = 3, KEEP = "aava-live-desk";
+const PLACES = [["Vinon", 0, 0], ["Gréoux", 6500, -5500], ["Esparron", 12800, -3900], ["St-Julien", 5500, 4500], ["Valensole", 6000, -17500], ["Manosque", -9000, -11500], ["Ste-Croix", 22500, -14800], ["Moustiers", 28000, -21500], ["Gorges", 36500, -17500], ["Ste-Victoire", -21000, 22000], ["Luberon", -31000, -6000], ["Lure", -15000, -31000]];
+const D = { link: null, code: "", id: "", up: 0, relays: [], gl: {}, order: [], wx: null, ev: [], tx: 0 };
+const now = () => performance.now();
+
+function openSession(code) {
+  D.code = code; D.id = LiveLink.rnd(6); D.gl = {}; D.order = []; D.ev = []; D.up = 0;
+  try { localStorage.setItem(KEEP, JSON.stringify({ code, at: Date.now() })); } catch (_) { }
+  const link = D.link = new LiveLink.Link(code, D.id, "i");
+  link.onstate = (n, rs) => { if (D.link === link) { D.up = n; D.relays = rs; if (n) send(); render(); } };
+  link.onmsg = m => { if (D.link === link) heard(m); };
+  link.open().catch(() => { });
+  $("intro").hidden = true; $("live").hidden = false; render();
+}
+function closeSession() {
+  if (D.link) D.link.close(); D.link = null; D.code = "";
+  try { localStorage.removeItem(KEEP); } catch (_) { }
+  $("live").hidden = true; $("intro").hidden = false; render();
+}
+// A glider's news, once a second
+function heard(m) {
+  if (m.r !== "s" || m.t !== "tm" || typeof m.f !== "string") return;
+  let g = D.gl[m.f];
+  if (!g) { if (D.order.length >= MAXG) return; g = D.gl[m.f] = { id: m.f, trail: [] }; D.order.push(m.f); send(); }
+  g.d = m; g.at = now();
+  const fl = m.st === "flying" || m.st === "paused" || m.st === "tow", last = g.trail[g.trail.length - 1];
+  if (!fl) g.trail = []; else if (!last || Math.hypot(m.x - last[0], m.z - last[1]) > 120) { g.trail.push([m.x, m.z]); if (g.trail.length > 400) g.trail.shift(); }
+  render();
+}
+// The whole state, again and again: who is in, the weather, the events of the last eight seconds
+function send() {
+  if (!D.link) return; D.tx = now();
+  const tn = Date.now(); D.ev = D.ev.filter(e => tn - e.t0 < 8000);
+  D.link.post({ t: "st", ro: D.order.slice(), wx: D.wx, ev: D.ev.map(e => ({ i: e.i, k: e.k, to: e.to, p: e.p, g: +((tn - e.t0) / 1000).toFixed(1) })) }).catch(() => { });
+}
+function sendEvent(k, to, p, btn) {
+  D.ev.push({ i: LiveLink.rnd(4), k, to, p: p || 1, t0: Date.now() }); send();
+  if (btn) { const old = btn.textContent; btn.textContent = t("sent"); btn.classList.add("flash"); btn.disabled = true; setTimeout(() => { btn.textContent = old; btn.classList.remove("flash"); btn.disabled = false; }, 1200); }
+}
+function readWx() {
+  const on = $("wxSet").getAttribute("aria-pressed") === "true";
+  D.wx = on ? { d: +$("wxDir").value, s: +$("wxSpd").value, a: +$("wxAir").value } : null;
+  $("wxF").disabled = !on; wxLabels(); send(); drawMap();
+}
+const dirName = d => t("dirs")[Math.round(d / 45) % 8];
+function wxLabels() {
+  const d = +$("wxDir").value, a = +$("wxAir").value;
+  $("wxDirV").textContent = dirName(d) + " (" + String(d).padStart(3, "0") + "°)"; $("wxSpdV").textContent = $("wxSpd").value + " " + t("kmh");
+  $("wxAirV").textContent = t("air")[a < .15 ? 0 : a < .7 ? 1 : a < 1.3 ? 2 : 3] + " (" + a.toFixed(1) + ")";
+}
+// One card per place. A card is built once and then only its figures change, so a button never moves under the finger.
+const CARDS = [];
+const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
+function gliderCard(n) {
+  const id = D.order[n - 1], g = id && D.gl[id], key = (g ? id : "-") + lang; let c = CARDS[n];
+  if (!c || c.key !== key) {
+    const box = el("div", g ? "gl" : "gl empty"); c = CARDS[n] = { key, box };
+    if (!g) box.textContent = t("empty", { n });
+    else {
+      box.style.borderColor = COL[n];
+      const top = el("div", "top"), dot = el("span", "dot"); dot.style.background = COL[n]; c.st = el("span", "chip"); c.rg = el("span", "chip warn"); top.append(dot, el("span", "name", t("name", { n })), c.st, c.rg);
+      const nums = el("div", "nums"); c.v = ["alt", "agl", "spd", "vz"].map(k => { const cell = el("div"), v = el("div", "v"); cell.append(v, el("div", "k", t(k))); nums.append(cell); return v; });
+      c.meta = el("div", "meta"); const ev = el("div", "ev");
+      c.btn = [["gust", "gust", 1], ["dropL", "drop", -1], ["dropR", "drop", 1], ["sink", "sink", 1]].map(([lbl, k, p]) => { const b = el("button", "btn sm", t(lbl)); b.type = "button"; b.addEventListener("click", () => sendEvent(k, id, p, b)); ev.append(b); return b; });
+      box.append(top, nums, c.meta, ev);
+    }
+  }
+  if (g) {
+    const d = g.d, age = Math.round((now() - g.at) / 1000), lost = age > 6, fl = d.st === "flying";
+    c.st.className = "chip" + (lost ? " lost" : fl || d.st === "tow" ? " fly" : ""); c.st.textContent = lost ? t("lost", { s: age }) : t("st_" + d.st);
+    c.rg.hidden = !d.rg || lost; if (d.rg) c.rg.textContent = t("rg_" + d.rg);
+    c.v[0].textContent = d.al + " m"; c.v[1].textContent = d.ag + " m"; c.v[2].textContent = String(d.v);
+    c.v[3].textContent = (d.vz > 0 ? "+" : d.vz < 0 ? "−" : "") + Math.abs(d.vz).toFixed(1); c.v[3].className = "v" + (d.vz >= .25 ? " up" : d.vz <= -2 ? " dn" : "");
+    c.meta.textContent = (t("lv")[d.lv] || "") + " · " + (d.md === "race" ? (d.tp < d.nt ? t("race", { k: d.tp + 1, n: d.nt }) : t("raceHome")) : t("free")) + " · " + t("bank") + " " + (d.b > 0 ? "+" : "") + d.b + "° · " + t("hdg") + " " + String(d.h).padStart(3, "0") + "°";
+    c.btn.forEach(b => { if (!b.classList.contains("flash")) b.disabled = !fl || lost; });
+  }
+  return c.box;
+}
+function render() {
+  document.documentElement.lang = lang; $("lgFR").setAttribute("aria-pressed", lang === "fr"); $("lgEN").setAttribute("aria-pressed", lang === "en");
+  ["inK", "inP", "in1", "in2", "in3", "inNote", "seK", "seL", "mapK", "wxK", "wxDay", "wxSet", "wxNote", "glK", "allGust", "allSink", "evNote", "open:btnOpen", "close:btnClose", "wxDir:wxDirK", "wxSpd:wxSpdK", "wxAir:wxAirK"].forEach(s => { const [k, id] = s.split(":"), e = $(id || k); if (!e.classList.contains("flash")) e.textContent = t(k); });
+  $("hSub").textContent = t("sub") + " · v" + VER;
+  if (!$("btnCopy").classList.contains("flash")) $("btnCopy").textContent = t("copy");
+  let kept = null; try { kept = JSON.parse(localStorage.getItem(KEEP) || "null"); } catch (_) { }
+  const can = kept && LiveLink.validCode(kept.code || "") && Date.now() - kept.at < 12 * 3600e3;
+  $("btnResume").hidden = !can; if (can) { $("btnResume").textContent = t("resume", { code: LiveLink.fmtCode(kept.code) }); $("btnResume").dataset.code = kept.code; }
+  if (!D.link) return;
+  $("seCode").textContent = LiveLink.fmtCode(D.code); $("seLink").textContent = new URL("./#live-" + LiveLink.fmtCode(D.code), location.href).href;
+  const rel = $("seRel"), b = document.createElement("b"), dial = D.relays.some(r => r.state === "dial" || r.state === "wait");
+  rel.textContent = ""; b.textContent = D.up ? t("rel", { n: D.up, m: D.relays.length || LiveLink.RELAYS.length }) : dial ? t("relDial") : t("relBad"); if (!D.up && !dial) b.className = "bad"; rel.append(b);
+  // a glider silent for a minute and a half gives its place back
+  D.order = D.order.filter(id => { const keep = now() - D.gl[id].at < 90000; if (!keep) delete D.gl[id]; return keep; });
+  const box = $("gliders"), want = D.order.length ? [1, 2, 3].map(gliderCard) : [CARDS[0] && CARDS[0].key === D.code + lang ? CARDS[0].box : (CARDS[0] = { key: D.code + lang, box: el("div", "gl empty", t("wait", { code: LiveLink.fmtCode(D.code) })) }).box];
+  if (box.children.length !== want.length || want.some((w, i) => box.children[i] !== w)) box.replaceChildren(...want);
+  const any = D.order.some(id => D.gl[id].d.st === "flying" && now() - D.gl[id].at < 6000);
+  if (!$("allGust").classList.contains("flash")) $("allGust").disabled = !any; if (!$("allSink").classList.contains("flash")) $("allSink").disabled = !any;
+  wxLabels(); drawMap();
+}
+function drawMap() {
+  const c = $("map"), dpr = Math.min(2, window.devicePixelRatio || 1), W = c.clientWidth || 560, H = Math.round(W * .82);
+  if (c.width !== Math.round(W * dpr) || c.height !== Math.round(H * dpr)) { c.width = Math.round(W * dpr); c.height = Math.round(H * dpr); c.style.height = H + "px"; }
+  const g = c.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H); g.fillStyle = "#E9EFE4"; g.fillRect(0, 0, W, H);
+  let far = 6000; D.order.forEach(id => { const d = D.gl[id].d; far = Math.max(far, Math.abs(d.x) * 1.25, Math.abs(d.z) * 1.25 * W / H); });
+  const k = (W / 2) / far, P = (x, z) => [W / 2 + x * k, H / 2 + z * k];
+  g.font = "600 11px " + getComputedStyle(document.body).fontFamily; g.textBaseline = "middle";
+  const step = far > 30000 ? 20000 : far > 14000 ? 10000 : 5000;                       // range rings
+  for (let r = step; r < far * 1.5; r += step) { g.strokeStyle = "rgba(29,43,74,.16)"; g.lineWidth = 1; g.beginPath(); g.arc(W / 2, H / 2, r * k, 0, 7); g.stroke(); g.fillStyle = "rgba(29,43,74,.5)"; g.fillText(r / 1000 + " km", W / 2 + 4, H / 2 - r * k + 8); }
+  PLACES.forEach(([name, x, z], i) => { const [a, b] = P(x, z); if (a < 4 || a > W - 4 || b < 4 || b > H - 4) return; g.fillStyle = i ? "rgba(29,43,74,.55)" : "#1D2B4A"; g.beginPath(); g.arc(a, b, i ? 2.5 : 4, 0, 7); g.fill(); const tw = g.measureText(name).width; g.fillText(name, a + 7 + tw > W - 4 ? a - 7 - tw : a + 7, b); });
+  g.fillStyle = "#1D2B4A"; g.fillText("N", W - 16, 14); g.beginPath(); g.moveTo(W - 12, 22); g.lineTo(W - 8, 32); g.lineTo(W - 16, 32); g.closePath(); g.fill();
+  if (D.wx && D.wx.s > 0) {                                                             // the imposed wind: an arrow that points where the air goes
+    const a = (D.wx.d + 180) * Math.PI / 180, ux = Math.sin(a), uy = -Math.cos(a), cx = 34, cy = H - 34, L = 20;
+    g.strokeStyle = "#3B6EA8"; g.fillStyle = "#3B6EA8"; g.lineWidth = 3; g.lineCap = "round"; g.beginPath(); g.moveTo(cx - ux * L, cy - uy * L); g.lineTo(cx + ux * L, cy + uy * L); g.stroke();
+    g.beginPath(); g.moveTo(cx + ux * (L + 7), cy + uy * (L + 7)); g.lineTo(cx + ux * (L - 3) - uy * 6, cy + uy * (L - 3) + ux * 6); g.lineTo(cx + ux * (L - 3) + uy * 6, cy + uy * (L - 3) - ux * 6); g.closePath(); g.fill();
+    g.fillText(t("wind", { d: dirName(D.wx.d), s: D.wx.s }), 64, H - 34);
+  }
+  let shown = 0;
+  D.order.forEach((id, i) => {
+    const gl = D.gl[id], d = gl.d, col = COL[i + 1]; if (d.st === "start") return; shown++;
+    if (gl.trail.length > 1) { g.strokeStyle = col; g.globalAlpha = .55; g.lineWidth = 2; g.lineJoin = "round"; g.beginPath(); gl.trail.forEach(([x, z], j) => { const [a, b] = P(x, z); j ? g.lineTo(a, b) : g.moveTo(a, b); }); g.stroke(); g.globalAlpha = 1; }
+    const [a, b] = P(d.x, d.z), h = d.h * Math.PI / 180;
+    g.save(); g.translate(a, b); g.rotate(h); g.fillStyle = col; g.strokeStyle = "#fff"; g.lineWidth = 1.5; g.beginPath(); g.moveTo(0, -11); g.lineTo(7, 8); g.lineTo(0, 4); g.lineTo(-7, 8); g.closePath(); g.fill(); g.stroke(); g.restore();
+    g.fillStyle = "#1D2B4A"; g.font = "800 12px " + getComputedStyle(document.body).fontFamily; g.fillText(String(i + 1), a + 11, b - 10); g.font = "600 11px " + getComputedStyle(document.body).fontFamily;
+  });
+  c.setAttribute("aria-label", shown ? D.order.map((id, i) => t("name", { n: i + 1 }) + ": " + D.gl[id].d.al + " m").join(", ") : t("none"));
+}
+$("lgFR").addEventListener("click", () => { lang = "fr"; render(); }); $("lgEN").addEventListener("click", () => { lang = "en"; render(); });
+$("btnOpen").addEventListener("click", () => openSession(LiveLink.newCode()));
+$("btnResume").addEventListener("click", () => openSession($("btnResume").dataset.code));
+$("btnClose").addEventListener("click", () => { if (confirm(t("closeQ"))) closeSession(); });
+$("btnCopy").addEventListener("click", async () => { const b = $("btnCopy"); try { await navigator.clipboard.writeText($("seLink").textContent); } catch (_) { const r = document.createRange(); r.selectNodeContents($("seLink")); const s = getSelection(); s.removeAllRanges(); s.addRange(r); try { document.execCommand("copy"); } catch (_) { } } b.textContent = t("copied"); b.classList.add("flash"); setTimeout(() => { b.classList.remove("flash"); b.textContent = t("copy"); }, 1500); });
+$("wxDay").addEventListener("click", () => { $("wxDay").setAttribute("aria-pressed", "true"); $("wxSet").setAttribute("aria-pressed", "false"); readWx(); });
+$("wxSet").addEventListener("click", () => { $("wxSet").setAttribute("aria-pressed", "true"); $("wxDay").setAttribute("aria-pressed", "false"); readWx(); });
+["wxDir", "wxSpd", "wxAir"].forEach(id => $(id).addEventListener("input", readWx));
+$("allGust").addEventListener("click", () => sendEvent("gust", "*", 1, $("allGust"))); $("allSink").addEventListener("click", () => sendEvent("sink", "*", 1, $("allSink")));
+window.addEventListener("resize", drawMap);
+setInterval(() => { if (D.link) { if (now() - D.tx > 1900) send(); render(); } }, 1000);
+render();
+
+</script>
+</body>
+</html>
