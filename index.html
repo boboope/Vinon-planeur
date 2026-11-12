@@ -56,6 +56,7 @@ textarea{width:100%;min-height:210px;font:12.5px/1.5 ui-monospace,SFMono-Regular
   </div>
   <div class="seg" role="group" aria-label="Langue"><button id="lgFR" aria-pressed="true">FR</button><button id="lgEN" aria-pressed="false">EN</button></div>
 </header>
+  <div class="verdict warn" id="upd" hidden><div id="updTxt"></div><p style="margin-top:8px"><button type="button" class="btn" id="btnUpd"></button></p></div>
 
 <section id="s1">
   <h2 id="h1"></h2>
@@ -121,7 +122,7 @@ const CFG = window.__VNT_TEST__ || {
     { name: "Nextcloud (443)", url: "stun:stun.nextcloud.com:443" }
   ]
 };
-const VER = "1.4", TIMEOUT_REL = 9000, TIMEOUT_PAIR = 30000, WAIT_PEER = 180000;
+const VER = "1.5", TIMEOUT_REL = 9000, TIMEOUT_PAIR = 30000, WAIT_PEER = 180000;
 
 // ---------- texts ----------
 const TX = {
@@ -154,7 +155,11 @@ const TX = {
     rp_head: "Test réseau · Planeur de poche", rp_dev: "Appareil", rp_conn: "Connexion annoncée", rp_unet: "Connexion indiquée par la personne", rp_relays: "Relais", rp_stun: "STUN", rp_nat: "NAT", rp_cand: "Adresses locales", rp_pair: "Lien entre deux appareils", rp_none: "non testé",
     role_host: "créateur du code", role_guest: "invité", link_local: "même réseau", link_net: "à travers Internet", link_relay: "par un relais", link_unknown: "même réseau ou Internet : non déterminé",
     sp_yes: "oui", sp_no: "non", sp_unk: "inconnu", un_wifi: "Wi-Fi", un_mobile: "4G/5G", un_cable: "câble", un_none: "connexion non indiquée",
-    rp_ev: " · indices : {lt}/{rt}, même adresse publique : {sp}{nl} · autre appareil : {pn}", rp_nl: " · adresses locales laissées de côté",
+    rp_ev: " · indices : {lt}/{rt}, même adresse publique : {sp}, même réseau IPv6 : {s6}{nl} · autre appareil : {pn}", rp_nl: " · adresses locales laissées de côté", rp_doubt: " · à confirmer avec l’appareil d’une autre personne",
+    v2_doubt: "Attention : les deux appareils sortent sur Internet par des adresses différentes, et rien ne prouve qu’ils sont sur le même réseau. Un téléphone et un ordinateur du même propriétaire peuvent se joindre par un chemin privé. Pour trancher, refais l’essai avec l’appareil d’une autre personne.",
+    v2_ver: "Les deux appareils n’utilisent pas la même version de cette page : recharge-la sur les deux, puis recommence.", rp_ver: "Versions différentes : cet appareil v{a}, l’autre {b}. Résultat à refaire après rechargement.", ver_old: "une version plus ancienne",
+    upd: "Une version plus récente de cette page existe (v{v}). Charge-la avant de continuer.", upd_btn: "Charger la nouvelle version",
+    nat_unsure: "indéterminé : {p} ports vus pour {k} serveurs (le navigateur a peut-être utilisé deux connexions locales). Seul l’essai entre deux appareils tranche.", nat_counts: " [IPv4 : {a} adresse(s), {p} port(s), {k} serveur(s)]",
     link_side: "chemin direct entre les deux appareils, hors du réseau testé",
     v2_side: "Lien direct établi, mais par un chemin qui relie directement les deux appareils (partage de connexion, câble, Bluetooth…). Cet essai ne dit rien du réseau du lieu.",
     v2_fail_net: "Pas de lien direct à travers Internet.", v2_fail_nl: "Les deux appareils se sont trouvés, mais aucun lien direct n’a pu s’établir entre ces deux réseaux (les adresses locales étaient laissées de côté, exprès). C’est un vrai résultat : entre ces deux réseaux, il faudrait un relais.",
@@ -190,7 +195,11 @@ const TX = {
     rp_head: "Network test · Pocket Glider", rp_dev: "Device", rp_conn: "Declared connection", rp_unet: "Connection stated by the person", rp_relays: "Relays", rp_stun: "STUN", rp_nat: "NAT", rp_cand: "Local addresses", rp_pair: "Link between two devices", rp_none: "not tested",
     role_host: "code creator", role_guest: "guest", link_local: "same network", link_net: "across the internet", link_relay: "through a relay", link_unknown: "same network or internet: not determined",
     sp_yes: "yes", sp_no: "no", sp_unk: "unknown", un_wifi: "Wi-Fi", un_mobile: "4G/5G", un_cable: "cable", un_none: "connection not stated",
-    rp_ev: " · evidence: {lt}/{rt}, same public address: {sp}{nl} · other device: {pn}", rp_nl: " · local addresses left out",
+    rp_ev: " · evidence: {lt}/{rt}, same public address: {sp}, same IPv6 network: {s6}{nl} · other device: {pn}", rp_nl: " · local addresses left out", rp_doubt: " · to confirm with someone else’s device",
+    v2_doubt: "Caution: the two devices reach the internet through different addresses, and nothing proves they are on the same network. A phone and a computer of the same owner can join over a private path. To settle it, repeat the test with someone else’s device.",
+    v2_ver: "The two devices are not using the same version of this page: reload it on both, then start again.", rp_ver: "Different versions: this device v{a}, the other {b}. Result to redo after reloading.", ver_old: "an older version",
+    upd: "A newer version of this page exists (v{v}). Load it before going on.", upd_btn: "Load the new version",
+    nat_unsure: "undetermined: {p} ports seen for {k} servers (the browser may have used two local connections). Only the test between two devices settles it.", nat_counts: " [IPv4: {a} address(es), {p} port(s), {k} server(s)]",
     link_side: "a direct path between the two devices, outside the network under test",
     v2_side: "Direct link established, but over a path that joins the two devices directly (phone hotspot, cable, Bluetooth…). This run says nothing about the venue’s network.",
     v2_fail_net: "No direct link across the internet.", v2_fail_nl: "The two devices found each other, but no direct link could be made between these two networks (local addresses were left out on purpose). This is a real result: between these two networks a relay would be needed.",
@@ -218,7 +227,8 @@ const errKind = e => e && e.message === "timeout" ? "timeout" : e && e.message =
 // ================================================================================================
 // Results, kept as data and drawn by render() (so the language can change at any time)
 // ================================================================================================
-const RES = { env: null, conn: "", userNet: "", relays: [], stun: [], nat: null, natN: 0, cand: null, pair: {}, done: false };
+const RES = { env: null, conn: "", userNet: "", relays: [], stun: [], nat: null, natN: 0, natC: null, cand: null, pair: {}, done: false };
+let NEWVER = "";                                       // a newer version of this page found on the server, if any
 
 function uaShort() {
   const u = navigator.userAgent || ""; let b = "?", m;
@@ -330,7 +340,7 @@ function gather(iceServers, ms) {                    // one peer connection = on
   });
 }
 async function runTests() {
-  RES.relays = []; RES.stun = []; RES.nat = null; RES.natV6 = false; RES.cand = null; RES.done = false; render();
+  RES.relays = []; RES.stun = []; RES.nat = null; RES.natV6 = false; RES.natC = null; RES.cand = null; RES.done = false; render();
   checkEnv();
   const trs = transports();
   trs.forEach(tr => RES.relays.push({ kind: tr.kind, name: tr.cfg.name, port: tr.cfg.port, state: "run" }));
@@ -350,11 +360,14 @@ async function runTests() {
     }).then(render));
   } else RES.stun.forEach(s => s.state = "blocked");
   await Promise.allSettled(jobs);
+  // One local connection behind a symmetric NAT shows one port per server. Fewer ports than servers means something else
+  // (a browser that asks from two local connections, for instance): then only the test between two devices can tell.
+  const k4 = RES.stun.filter(s => s.state === "ok" && s.v4).length;
   if (!natRaw || !natRaw.n) RES.nat = "unknown";
   else if (!natRaw.n4) RES.nat = "v6only";
-  else if (RES.stun.filter(s => s.state === "ok" && s.v4).length < 2) RES.nat = "one";
-  else RES.nat = natRaw.ips > 1 ? "multi" : natRaw.pairs > 1 ? "hard" : "easy";
-  RES.natV6 = !!(natRaw && natRaw.v6 && natRaw.n4); RES.natN = natRaw ? natRaw.ips : 0;
+  else if (k4 < 2) RES.nat = "one";
+  else RES.nat = natRaw.ips > 1 ? "multi" : natRaw.pairs === 1 ? "easy" : (natRaw.pairs >= 3 && natRaw.pairs >= k4) ? "hard" : "unsure";
+  RES.natV6 = !!(natRaw && natRaw.v6 && natRaw.n4); RES.natN = natRaw ? natRaw.ips : 0; RES.natC = natRaw && natRaw.n4 ? { a: natRaw.ips, p: natRaw.pairs, k: k4 } : null;
   RES.done = true; render();
 }
 function candSummary(cs) {                          // hidden (.local) names say nothing about IPv4 or IPv6: only literal addresses count
@@ -366,6 +379,7 @@ function candSummary(cs) {                          // hidden (.local) names say
 // Drawing
 // ================================================================================================
 const NETBTN = [["netW", "wifi"], ["netM", "mobile"], ["netC", "cable"]], NETS = NETBTN.map(x => x[1]);
+const natText = () => t("nat_" + RES.nat, Object.assign({ n: RES.natN }, RES.natC || {})) + (RES.natV6 ? t("nat_v6") : "") + (RES.natC ? t("nat_counts", RES.natC) : "");
 function addRow(label, state, detail) {
   const li = document.createElement("li"); li.innerHTML = '<span class="dot"></span><b></b><span class="d"></span>';
   li.querySelector(".dot").className = "dot " + state; li.querySelector("b").textContent = label; li.querySelector(".d").textContent = detail || ""; $("rows").appendChild(li);
@@ -377,6 +391,7 @@ function render() {
   ["title", "sub", "h1", "h2", "h3", "n1", "n2", "n3"].forEach(k => { const el = $({ title: "tTitle", sub: "tSub" }[k] || k); if (el) el.textContent = t(k); });
   $("btnRerun").textContent = t("rerun"); $("btnHost").textContent = t("host"); $("or").textContent = t("or"); $("btnJoin").textContent = t("join"); $("hostHint").textContent = t("hostHint");
   $("btnCopy").textContent = t("copy"); $("lgFR").setAttribute("aria-pressed", lang === "fr"); $("lgEN").setAttribute("aria-pressed", lang === "en"); $("code").placeholder = "XXXX-XXXX";
+  $("upd").hidden = !NEWVER; $("updTxt").textContent = t("upd", { v: NEWVER }); $("btnUpd").textContent = t("upd_btn");
   $("netLbl").textContent = t("netLbl"); NETBTN.forEach(([id, v]) => { $(id).textContent = t(id); $(id).setAttribute("aria-pressed", RES.userNet === v); });
   const rows = $("rows"); rows.innerHTML = "";
   const e = RES.env;
@@ -387,7 +402,7 @@ function render() {
   }
   RES.relays.forEach(r => addRow(r.kind === "ntfy" ? t("r_ntfy", { p: r.port }) : t("r_mqtt", { n: r.name, p: r.port }), r.state === "ok" ? "ok" : r.state === "run" ? "run" : "bad", relayDetail(r)));
   RES.stun.forEach(s => addRow(t("r_stun", { n: s.name }), s.state === "ok" ? "ok" : s.state === "run" ? "run" : "bad", s.state === "ok" ? t("stun_ok", { ms: s.ms }) : s.state === "run" ? "" : t("stun_none")));
-  if (RES.stun.length) addRow(t("r_nat"), RES.nat ? (RES.nat === "easy" ? "ok" : RES.nat === "hard" || RES.nat === "multi" ? "warn" : "warn") : "run", RES.nat ? t("nat_" + RES.nat, { n: RES.natN }) + (RES.natV6 ? t("nat_v6") : "") : "");
+  if (RES.stun.length) addRow(t("r_nat"), RES.nat ? (RES.nat === "easy" ? "ok" : RES.nat === "hard" || RES.nat === "multi" ? "warn" : "warn") : "run", RES.nat ? natText() : "");
   if (RES.stun.length) { const c = RES.cand; addRow(t("r_cand"), c ? (c.n ? "ok" : "warn") : "run", c ? (c.n ? (c.mdns ? t("cand_mdns") : t("cand_ip")) + (c.v4 ? t("cand_v4") : "") + (c.v6 ? t("cand_v6") : "") : t("cand_none")) : ""); }
   const v1 = $("v1");
   if (RES.done) {
@@ -473,34 +488,45 @@ const localEvidence = (info, remHost) => !!(info && (info.priv || info.same64 ||
 //   "side": the two devices are joined directly (phone hotspot, cable, Bluetooth) although they are on different internet connections,
 //   so the link says nothing about the networks under test. Seen at the club on 10 Nov 2026 with a phone and a Mac of the same owner.
 const LINKS = ["local", "net", "relay", "side", "unknown"];
+const or3 = (x, y) => x === true || y === true ? true : x === false || y === false ? false : null;
+const mixedNets = (u, p) => NETS.includes(u) && NETS.includes(p) && u !== p && (u === "mobile" || p === "mobile");
+//   sp: same public IPv4 address; s6: same IPv6 network (first 64 bits). Either one being true proves a shared network.
+//   A local link without that proof is "side" only when the stated connections differ (one on 4G/5G) or the IPv6 networks are known to differ.
+//   Two devices on one Wi-Fi can leave by different public IPv4 addresses (a box with several): that alone proves nothing (seen 12 Nov 2026).
 function linkKind(a, b) {
   a = a || {}; b = b || {};
-  const loc = !!(a.loc || b.loc), sp = a.sp === true || b.sp === true ? true : a.sp === false || b.sp === false ? false : null;
+  const loc = !!(a.loc || b.loc), sp = or3(a.sp, b.sp), s6 = or3(a.s6, b.s6), same = sp === true || s6 === true;
   if ([a.lt, a.rt, b.lt, b.rt].includes("relay")) return "relay";
-  if (loc && sp === false) return "side";
-  if (loc || sp === true) return "local";
-  if (sp === false || a.nl || b.nl) return "net";
+  if (loc) return !same && (mixedNets(a.un, a.pn) || mixedNets(b.un, b.pn) || s6 === false) ? "side" : "local";
+  if (same) return "local";
+  if (sp === false || s6 === false || a.nl || b.nl) return "net";
   return "unknown";
 }
+// A local link, public IPv4 addresses that differ, and no IPv6 comparison to settle it: "same network" is then the likely reading, not a proven one.
+const linkDoubt = (a, b) => { a = a || {}; b = b || {}; return !!(a.loc || b.loc) && or3(a.sp, b.sp) === false && or3(a.s6, b.s6) === null && linkKind(a, b) === "local"; };
 // What the other device sends back is shown in the report: keep only values of the expected shape.
 function cleanResult(r) {
   r = r || {}; const s = (v, re) => typeof v === "string" && re.test(v) ? v : "", n = v => v == null ? undefined : Math.max(0, Math.min(99999, Math.round(+v) || 0));
   return { ok: !!r.ok, link: LINKS.includes(r.link) ? r.link : "unknown", proto: s(r.proto, /^[A-Z]{1,4}$/), net: s(r.net, /^[a-z0-9]{1,12}$/), lt: s(r.lt, /^[a-z]{1,6}$/), rt: s(r.rt, /^[a-z]{1,6}$/),
-    sp: r.sp === true ? true : r.sp === false ? false : null, loc: r.loc === true, nl: r.nl === true, un: NETS.includes(r.un) ? r.un : "", pn: NETS.includes(r.pn) ? r.pn : "",
+    sp: r.sp === true ? true : r.sp === false ? false : null, s6: r.s6 === true ? true : r.s6 === false ? false : null, loc: r.loc === true, nl: r.nl === true, dbt: r.dbt === true, un: NETS.includes(r.un) ? r.un : "", pn: NETS.includes(r.pn) ? r.pn : "",
     med: n(r.med), min: n(r.min), max: n(r.max), loss: r.loss == null ? undefined : Math.min(100, n(r.loss)), n: n(r.n) };
 }
 async function startPairing(role, code) {
   stopPairing(); verdict2(null); $("log").textContent = ""; $("log").hidden = false; RES.pair = {};
-  const C = CUR = { role, code, pc: null, pend: [], remoteSet: false, started: false, connected: false, dead: false, types: new Set(), mine: null, loc4: new Set(), rem4: new Set(), remHost: { mdns: 0, priv: 0, pub4: 0, pub6: 0 }, peerNet: "", pub4: new Set(), remHash: new Set(), noLocal: false };
+  const C = CUR = { role, code, pc: null, pend: [], remoteSet: false, started: false, connected: false, dead: false, types: new Set(), mine: null, loc4: new Set(), rem4: new Set(), remHost: { mdns: 0, priv: 0, pub4: 0, pub6: 0 }, peerNet: "", pub4: new Set(), remHash: new Set(), noLocal: false, pub6: new Set(), loc6: new Set(), rem6: new Set(), remHash6: new Set(), peerVer: "" };
   const alive = () => CUR === C && !C.dead;
   $("btnHost").disabled = $("btnJoin").disabled = true;
   const finish = () => { $("btnHost").disabled = $("btnJoin").disabled = false; };
   const chan = C.chan = new Chan(code, role === "host" ? "A" : "B");
   // This device's public IPv4 address(es), asked afresh for each pairing: the network may have changed since the page was opened (Wi-Fi switched off for the 4G round).
-  if (window.RTCPeerConnection && CFG.stun.length) gather(CFG.stun.map(s => ({ urls: s.url })), 4000).then(o => { o.cands.forEach(c => { if (c.type === "srflx" && !c.addr.includes(":")) C.pub4.add(c.addr); }); }, () => { });
+  if (window.RTCPeerConnection && CFG.stun.length) gather(CFG.stun.map(s => ({ urls: s.url })), 4000).then(o => { o.cands.forEach(c => { if (c.type === "srflx") (c.addr.includes(":") ? C.pub6 : C.pub4).add(c.addr); }); }, () => { });
   const mine = () => [...new Set([...C.pub4, ...C.loc4])];
-  const noteHash = list => { if (Array.isArray(list)) list.slice(0, 8).forEach(h => { if (typeof h === "string" && /^[0-9a-f]{16}$/.test(h)) C.remHash.add(h); }); };
-  const myHashes = async () => { try { return await Promise.all(mine().slice(0, 6).map(a => pubHash(code, a))); } catch (_) { return []; } };
+  const pfx = a => { const q = v6parts(a); return q && q.length === 8 ? "p6:" + q.slice(0, 4).join(":") : ""; };          // the IPv6 network an address belongs to
+  const mine6 = () => [...new Set([...C.pub6, ...C.loc6].map(pfx).filter(Boolean))];
+  const noteHash = (list, into) => { if (Array.isArray(list)) list.slice(0, 8).forEach(h => { if (typeof h === "string" && /^[0-9a-f]{16}$/.test(h)) (into || C.remHash).add(h); }); };
+  const hashes = async list => { try { return await Promise.all(list.slice(0, 6).map(a => pubHash(code, a))); } catch (_) { return []; } };
+  const myHashes = () => hashes(mine());
+  const noteVer = v => { C.peerVer = typeof v === "string" && /^\d+(\.\d+){0,2}$/.test(v) ? v : "old"; if (C.peerVer !== VER) { RES.pair.ver = C.peerVer; logLine(t("v2_ver")); } };
   logLine(t("p_wait"));
   const names = await chan.open(n => { if (alive()) logLine(t("p_late", { n })); });
   if (!alive()) return;
@@ -512,21 +538,21 @@ async function startPairing(role, code) {
   // find a private path to each other (hotspot, cable, Bluetooth) and the test proves nothing about the two networks.
   const mkPc = () => {
     const pc = new RTCPeerConnection(ice()); C.pc = pc;
-    pc.onicecandidate = e => { if (!e.candidate || !alive()) return; const c = parseCand(e.candidate.candidate); if (c) { C.types.add(c.type); if (c.type === "srflx" && !c.addr.includes(":")) C.loc4.add(c.addr); } if (C.noLocal && c && c.type === "host") return; chan.post({ t: "cand", c: e.candidate.toJSON() }); };
+    pc.onicecandidate = e => { if (!e.candidate || !alive()) return; const c = parseCand(e.candidate.candidate); if (c) { C.types.add(c.type); if (c.type === "srflx") (c.addr.includes(":") ? C.loc6 : C.loc4).add(c.addr); else if (c.type === "host" && c.addr.includes(":") && !privAddr(c.addr)) C.loc6.add(c.addr); } if (C.noLocal && c && c.type === "host") return; chan.post({ t: "cand", c: e.candidate.toJSON() }); };
     pc.oniceconnectionstatechange = () => { if (alive()) logLine(t("p_ice", { s: pc.iceConnectionState })); };
     return pc;
   };
   const stripHost = sdp => !C.noLocal ? sdp : String(sdp || "").split(/\r?\n/).filter(l => !(l.indexOf("a=candidate:") === 0 && / typ host( |$)/.test(l))).join("\r\n");
   // what the other device says about its own addresses (kept as counts and a comparison, never shown)
-  const noteRemote = line => { const c = parseCand(line); if (!c) return; if (c.type === "srflx") { if (!c.addr.includes(":")) C.rem4.add(c.addr); } else if (c.type === "host") { const h = C.remHost; if (/\.local$/i.test(c.addr)) h.mdns++; else if (privAddr(c.addr)) h.priv++; else if (c.addr.includes(":")) h.pub6++; else h.pub4++; } };
+  const noteRemote = line => { const c = parseCand(line); if (!c) return; if (c.type === "srflx") (c.addr.includes(":") ? C.rem6 : C.rem4).add(c.addr); else if (c.type === "host") { const h = C.remHost; if (/\.local$/i.test(c.addr)) h.mdns++; else if (privAddr(c.addr)) h.priv++; else if (c.addr.includes(":")) { h.pub6++; C.rem6.add(c.addr); } else h.pub4++; } };
   const noteSdp = sdp => String(sdp || "").split(/\r?\n/).forEach(l => { if (l.indexOf("a=candidate:") === 0) noteRemote(l); });
   const addCand = async c => { try { const line = c && c.candidate, p = parseCand(line); noteRemote(line); if (C.noLocal && p && p.type === "host") return; await C.pc.addIceCandidate(c); } catch (_) { } };
   const flush = async () => { C.remoteSet = true; for (const c of C.pend.splice(0)) await addCand(c); };
-  const evidence = async () => { const info = await pairInfo(C.pc).catch(() => null), sp = await samePublic(mine(), C.rem4, C.remHash, info ? info.ra4 : "", code).catch(() => null); return { proto: info ? info.proto : "", net: info ? info.net : "", lt: info ? info.lt : "", rt: info ? info.rt : "", sp, loc: localEvidence(info, C.remHost), nl: C.noLocal, un: RES.userNet, pn: C.peerNet }; };
+  const evidence = async () => { const info = await pairInfo(C.pc).catch(() => null), sp = await samePublic(mine(), C.rem4, C.remHash, info ? info.ra4 : "", code).catch(() => null), s6 = await samePublic(mine6(), new Set([...C.rem6].map(pfx).filter(Boolean)), C.remHash6, "", code).catch(() => null); return { s6, proto: info ? info.proto : "", net: info ? info.net : "", lt: info ? info.lt : "", rt: info ? info.rt : "", sp, loc: localEvidence(info, C.remHost), nl: C.noLocal, un: RES.userNet, pn: C.peerNet }; };
   // each channel echoes pings; the guest measures
   // The side that creates the channels speaks first. The side that answers waits to hear from it before sending anything:
   // what the answering side sends in the very first instant can be lost (seen about once in ten pairings in testing).
-  const sayHi = async dc => { const pub = await myHashes(); try { dc.send(JSON.stringify({ k: "hi", net: RES.userNet, pub })); } catch (_) { } };
+  const sayHi = async dc => { const pub = await myHashes(), p6 = await hashes(mine6()); try { dc.send(JSON.stringify({ k: "hi", net: RES.userNet, pub, p6 })); } catch (_) { } };
   const wire = (dc, kind) => {
     dc.onopen = () => { if (!alive() || kind !== "r") return; if (role === "host") { sayHi(dc); [700, 2500].forEach(ms => setTimeout(() => { if (alive()) sayHi(dc); }, ms)); } if (!C.connected) { C.connected = true; clearTimeout(C.timer); logLine(t("p_conn")); onConnected(); } };
     dc.onmessage = ev => { let m; try { m = JSON.parse(ev.data); } catch (_) { return; } onData(dc, kind, m); };
@@ -536,18 +562,18 @@ async function startPairing(role, code) {
   function onData(dc, kind, m) {
     if (m.k === "p") { try { dc.send(JSON.stringify({ k: "e", i: m.i, t: m.t })); } catch (_) { } }
     else if (m.k === "e") { if (kind === "r") got.r.set(m.i, now() - m.t); else got.u.add(m.i); }
-    else if (m.k === "hi") { if (NETS.includes(m.net)) C.peerNet = m.net; noteHash(m.pub); C.gotHi = true; if (role === "guest" && !C.hiSent) { C.hiSent = true; sayHi(dc); } }
+    else if (m.k === "hi") { if (NETS.includes(m.net)) C.peerNet = m.net; noteHash(m.pub); noteHash(m.p6, C.remHash6); C.gotHi = true; if (role === "guest" && !C.hiSent) { C.hiSent = true; sayHi(dc); } }
     else if (m.k === "res" && role === "host") {                    // the code creator: the other device has finished measuring. Put both sides' evidence together.
-      const g = cleanResult(m.r); noteHash(m.pub); if (!C.peerNet) C.peerNet = g.un; logLine(t("p_res"));
+      const g = cleanResult(m.r); noteHash(m.pub); noteHash(m.p6, C.remHash6); if (!C.peerNet) C.peerNet = g.un; logLine(t("p_res"));
       evidence().then(ev => {
-        if (!alive()) return; const link = linkKind(ev, g);
-        RES.pair.host = Object.assign({ ok: true }, ev, { link }); RES.pair.guest = Object.assign(g, { link });
+        if (!alive()) return; const link = linkKind(ev, g), dbt = linkDoubt(ev, g);
+        RES.pair.host = Object.assign({ ok: true }, ev, { link, dbt }); RES.pair.guest = Object.assign(g, { link, dbt });
         try { dc.send(JSON.stringify({ k: "fin", r: RES.pair.host })); } catch (_) { }
         showPairResult(); render();
       });
     }
     else if (m.k === "fin" && role === "guest" && RES.pair.guest) {  // the guest: the code creator's line, and the verdict both sides now share
-      const h = cleanResult(m.r); RES.pair.host = h; RES.pair.guest.link = h.link; showPairResult(); render();
+      const h = cleanResult(m.r); RES.pair.host = h; RES.pair.guest.link = h.link; RES.pair.guest.dbt = h.dbt; showPairResult(); render();
     }
   }
   async function onConnected() {
@@ -560,20 +586,20 @@ async function startPairing(role, code) {
       for (let i = 0; i < N && alive(); i++) { try { C.dcU.send(JSON.stringify({ k: "p", i, t: now() })); } catch (_) { } await sleep(60); }
       await sleep(900); if (!alive()) return;
       const rt = [...got.r.values()].map(x => Math.round(x)), ev = await evidence(); if (!alive()) return;
-      C.mine = Object.assign({ ok: true, med: Math.round(median(rt)), min: rt.length ? Math.min(...rt) : 0, max: rt.length ? Math.max(...rt) : 0, loss: Math.round(100 * (N - got.u.size) / N), n: rt.length }, ev, { link: linkKind(ev) });
+      C.mine = Object.assign({ ok: true, med: Math.round(median(rt)), min: rt.length ? Math.min(...rt) : 0, max: rt.length ? Math.max(...rt) : 0, loss: Math.round(100 * (N - got.u.size) / N), n: rt.length }, ev, { link: linkKind(ev), dbt: linkDoubt(ev) });
       RES.pair.guest = C.mine; logLine(t("p_done"));
-      try { C.dcR.send(JSON.stringify({ k: "res", r: C.mine, pub: await myHashes() })); } catch (_) { }
+      try { C.dcR.send(JSON.stringify({ k: "res", r: C.mine, pub: await myHashes(), p6: await hashes(mine6()) })); } catch (_) { }
       showPairResult(); render(); finish();
     } else {
       const ev = await evidence(); if (!alive()) return;
-      if (!RES.pair.guest) RES.pair.host = Object.assign({ ok: true }, ev, { link: linkKind(ev) });
+      if (!RES.pair.guest) RES.pair.host = Object.assign({ ok: true }, ev, { link: linkKind(ev), dbt: linkDoubt(ev) });
       render(); setTimeout(() => { if (alive()) finish(); }, 12000);
     }
   }
   function showPairResult() {
     const g = RES.pair.guest; if (!g || !g.ok || g.med == null) return;
-    const own = RES.pair[role === "host" ? "host" : "guest"], link = own && own.ok && LINKS.includes(own.link) ? own.link : g.link;
-    verdict2(link === "unknown" || link === "side" ? "warn" : "ok", t("v2_" + link), t("v2_d", { med: g.med, min: g.min, max: g.max, loss: g.loss }));
+    const own = RES.pair[role === "host" ? "host" : "guest"], link = own && own.ok && LINKS.includes(own.link) ? own.link : g.link, dbt = !!(own && own.dbt), ver = !!RES.pair.ver;
+    verdict2(link === "unknown" || link === "side" || dbt || ver ? "warn" : "ok", t("v2_" + link), t("v2_d", { med: g.med, min: g.min, max: g.max, loss: g.loss }) + (dbt ? " " + t("v2_doubt") : "") + (ver ? " " + t("v2_ver") : ""));
   }
   chan.onmsg = async m => {
     if (!alive()) return;
@@ -581,16 +607,16 @@ async function startPairing(role, code) {
       if (m.t === "hello") {
         if (!C.started) {
           C.started = true; clearTimeout(C.timer); C.timer = setTimeout(fail, TIMEOUT_PAIR); logLine(t("p_hello", { via: m.via }));
-          if (NETS.includes(m.net)) C.peerNet = m.net;
+          if (NETS.includes(m.net)) C.peerNet = m.net; noteVer(m.v);
           C.noLocal = NETS.includes(m.net) && NETS.includes(RES.userNet) && m.net !== RES.userNet && (m.net === "mobile" || RES.userNet === "mobile"); if (C.noLocal) logLine(t("p_nolocal"));
           const pc = mkPc(); wire(pc.createDataChannel("r"), "r"); wire(pc.createDataChannel("u", { ordered: false, maxRetransmits: 0 }), "u");
-          await pc.setLocalDescription(await pc.createOffer()); C.offer = stripHost(pc.localDescription.sdp); await chan.post({ t: "offer", sdp: C.offer, nl: C.noLocal, net: RES.userNet }); logLine(t("p_offer"));
-        } else if (!C.connected && C.offer) await chan.post({ t: "offer", sdp: C.offer, nl: C.noLocal, net: RES.userNet });      // the guest still asks: say it again
+          await pc.setLocalDescription(await pc.createOffer()); C.offer = stripHost(pc.localDescription.sdp); await chan.post({ t: "offer", sdp: C.offer, nl: C.noLocal, net: RES.userNet, v: VER }); logLine(t("p_offer"));
+        } else if (!C.connected && C.offer) await chan.post({ t: "offer", sdp: C.offer, nl: C.noLocal, net: RES.userNet, v: VER });      // the guest still asks: say it again
       } else if (m.t === "answer" && C.pc && !C.remoteSet) { noteSdp(m.sdp); await C.pc.setRemoteDescription({ type: "answer", sdp: stripHost(m.sdp) }); await flush(); }
       else if (m.t === "cand") { if (C.remoteSet) await addCand(m.c); else C.pend.push(m.c); }
     } else {
       if (m.t === "offer" && !C.pc) {
-        logLine(t("p_hello", { via: m.via })); clearInterval(C.hello); if (NETS.includes(m.net)) C.peerNet = m.net;
+        logLine(t("p_hello", { via: m.via })); clearInterval(C.hello); if (NETS.includes(m.net)) C.peerNet = m.net; noteVer(m.v);
         C.noLocal = m.nl === true; if (C.noLocal) logLine(t("p_nolocal"));
         const pc = mkPc(); pc.ondatachannel = e => wire(e.channel, e.channel.label === "u" ? "u" : "r");
         noteSdp(m.sdp); await pc.setRemoteDescription({ type: "offer", sdp: stripHost(m.sdp) }); await flush();
@@ -610,7 +636,7 @@ async function startPairing(role, code) {
     stopPairing(); finish();
   };
   C.timer = setTimeout(fail, role === "host" ? WAIT_PEER : TIMEOUT_PAIR);       // the code creator waits three minutes for the other device, then 30 s for the link
-  if (role === "guest") { const hello = () => chan.post({ t: "hello", net: RES.userNet }); await hello(); C.hello = setInterval(() => { if (alive() && !C.pc) hello(); }, 1500); }
+  if (role === "guest") { const hello = () => chan.post({ t: "hello", net: RES.userNet, v: VER }); await hello(); C.hello = setInterval(() => { if (alive() && !C.pc) hello(); }, 1500); }
 }
 
 // ================================================================================================
@@ -626,17 +652,18 @@ function buildReport() {
   L.push(t("rp_relays") + " : " + (rs.join(" · ") || t("rp_none")));
   const ss = RES.stun.map(s => s.name + " " + (s.state === "ok" ? "OK " + s.ms + " ms" : s.state === "run" ? "…" : t("stun_none").split(" (")[0]));
   L.push(t("rp_stun") + " : " + (ss.join(" · ") || t("rp_none")));
-  L.push(t("rp_nat") + " : " + (RES.nat ? t("nat_" + RES.nat, { n: RES.natN }) + (RES.natV6 ? t("nat_v6") : "") : "…"));
+  L.push(t("rp_nat") + " : " + (RES.nat ? natText() : "…"));
   const c = RES.cand; L.push(t("rp_cand") + " : " + (c ? (c.n ? (c.mdns ? t("cand_mdns") : t("cand_ip")) + (c.v4 ? t("cand_v4") : "") + (c.v6 ? t("cand_v6") : "") : t("cand_none")) : "…"));
   const P = [["host", "role_host"], ["guest", "role_guest"]].map(([k, rk]) => {
     const r = RES.pair[k]; if (!r) return null;
     const role = t(rk) + " (" + t("un_" + (r.un || "none")) + ")", proto = (r.proto ? ", " + r.proto : "") + (r.net && r.net !== "unknown" ? " · " + r.net : "");
-    const nl = r.nl ? t("rp_nl") : "", ev = t("rp_ev", { lt: r.lt || "?", rt: r.rt || "?", sp: t(r.sp === true ? "sp_yes" : r.sp === false ? "sp_no" : "sp_unk"), nl, pn: t("un_" + (r.pn || "none")) });
+    const yn = v => t(v === true ? "sp_yes" : v === false ? "sp_no" : "sp_unk"), nl = r.nl ? t("rp_nl") : "", ev = t("rp_ev", { lt: r.lt || "?", rt: r.rt || "?", sp: yn(r.sp), s6: yn(r.s6), nl, pn: t("un_" + (r.pn || "none")) }) + (r.dbt ? t("rp_doubt") : "");
     if (!r.ok) return t("rp_failline", { role, nl });
     if (r.med == null) return t("rp_hostline", { role, link: t("link_" + (r.link || "unknown")), proto, ev });
     return t("rp_pairline", { role, link: t("link_" + (r.link || "unknown")), med: r.med, min: r.min, max: r.max, loss: r.loss, proto, ev });
   }).filter(Boolean);
   L.push(t("rp_pair") + " : " + (P.length ? "" : t("rp_none"))); P.forEach(x => L.push("  " + x));
+  if (RES.pair.ver) L.push("  " + t("rp_ver", { a: VER, b: RES.pair.ver === "old" ? t("ver_old") : "v" + RES.pair.ver }));
   return L.join("\n");
 }
 
@@ -644,6 +671,16 @@ function buildReport() {
 // Wiring
 // ================================================================================================
 function setLang(l) { lang = l; render(); }
+// An old copy of the page left open, or kept by the browser, has misled three runs. Ask the server which version it has.
+async function checkUpdate() {
+  try {
+    const r = await fetch(location.pathname + "?fresh=" + Date.now(), { cache: "no-store" }); if (!r.ok) return;
+    const m = /const VER = "(\d+(?:\.\d+){0,2})"/.exec(await r.text()); if (!m) return;
+    const a = m[1].split(".").map(Number), b = VER.split(".").map(Number); let newer = false;
+    for (let i = 0; i < 3; i++) { const x = a[i] || 0, y = b[i] || 0; if (x !== y) { newer = x > y; break; } }
+    if (newer && NEWVER !== m[1]) { NEWVER = m[1]; render(); }
+  } catch (_) { }
+}
 document.addEventListener("DOMContentLoaded", () => {
   $("lgFR").onclick = () => setLang("fr"); $("lgEN").onclick = () => setLang("en");
   $("btnRerun").onclick = () => runTests();
@@ -654,9 +691,11 @@ document.addEventListener("DOMContentLoaded", () => {
   $("code").addEventListener("input", e => { const v = normCode(e.target.value).slice(0, 8); e.target.value = v.length > 4 ? v.slice(0, 4) + "-" + v.slice(4) : v; });
   $("code").addEventListener("keydown", e => { if (e.key === "Enter") $("btnJoin").click(); });
   $("btnCopy").onclick = async () => { const ta = $("rep"); ta.value = buildReport(); try { await navigator.clipboard.writeText(ta.value); } catch (_) { ta.select(); try { document.execCommand("copy"); } catch (__) { } } $("copied").textContent = t("copied"); setTimeout(() => $("copied").textContent = "", 2500); };
-  render(); runTests();
+  $("btnUpd").onclick = () => location.replace(location.pathname + "?v=" + encodeURIComponent(NEWVER));
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) checkUpdate(); });
+  render(); runTests(); checkUpdate();
 });
-window.__vnt = { RES, render, buildReport, startPairing, stopPairing, runTests, linkKind, localEvidence, privAddr, same64, cleanResult, samePublic, pubHash };
+window.__vnt = { RES, render, buildReport, startPairing, stopPairing, runTests, checkUpdate, linkKind, linkDoubt, localEvidence, privAddr, same64, cleanResult, samePublic, pubHash };
 </script>
 </body>
 </html>

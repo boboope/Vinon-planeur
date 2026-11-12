@@ -10,7 +10,7 @@ Elle répond à une question : sur ce réseau, deux appareils (téléphone, tabl
 
 ## Comment s'en servir
 
-1. Ouvrir la page sur deux appareils, sur place.
+1. Ouvrir la page sur deux appareils, sur place. Si elle annonce une version plus récente, la charger d'abord : les deux appareils doivent utiliser la même version (elle figure sur la première ligne du rapport).
 2. Sur chaque appareil, indiquer comment il est connecté : Wi-Fi, 4G / 5G ou câble.
 3. Sur le premier, toucher « Créer un code ». Sur le second, saisir ce code puis toucher « Connecter ».
 4. Attendre le résultat (une dizaine de secondes), puis toucher « Copier le rapport » sur chaque appareil et coller le rapport dans un message.
